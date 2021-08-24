@@ -37,6 +37,7 @@ int ldecode(lua_State* L) {
         return luaL_error(L, "deserialize buff append");
     }
     uint32_t size;
+    lua_settop(L, 0);
     buffer_read(binary, (uint8_t*)&size, sizeof(uint32_t));
     decode(L, binary);
     return lua_gettop(L);
@@ -60,13 +61,13 @@ int lunserialize(lua_State* L) {
     buffer_apend(binary, tmp, strlen(tmp));
     buffer_apend(binary, data, len);
     uint8_t* byte = buffer_data(binary, &len);
-    if (luaL_loadstring(L, byte) == 0) {
+    if (luaL_loadbufferx(L, byte, len, "unserialize", "bt") == 0) {
         if (lua_pcall(L, 0, 1, 0) == 0) {
             buffer_close(binary);
             return 1;
         }
     }
-    return lua_error(L, lua_tostring(L, -1));
+    return luaL_error(L, lua_tostring(L, -1));
 }
 
 static int lbuffer_size(lua_State* L) {
@@ -102,13 +103,6 @@ static int lbuffer_erase(lua_State* L) {
     return 1;
 }
 
-static int lbuffer_grow(lua_State* L) {
-    struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
-    size_t graw_len = lua_tointeger(L, 2);
-    lua_pushinteger(L, buffer_grow(buf, graw_len));
-    return 1;
-}
-
 static int lbuffer_copy(lua_State* L) {
     size_t len;
     struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
@@ -119,10 +113,10 @@ static int lbuffer_copy(lua_State* L) {
 }
 
 static int lbuffer_peek(lua_State* L) {
-    uint8_t* data;
     size_t len = lua_tointeger(L, 2);
     struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
-    if (buffer_peek(buf, data, len)) {
+    uint8_t* data = buffer_peek(buf, len);
+    if (data) {
         lua_pushlstring(L, data, len);
         return 1;
     }
@@ -141,12 +135,21 @@ static int lbuffer_read(lua_State* L) {
     return size > 0 ? 1 : 0;
 }
 
+static int lbuffer_data(lua_State* L) {
+    size_t len;
+    struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
+    uint8_t* data = buffer_data(buf, &len);
+    lua_pushlstring(L, data, len);
+    lua_pushinteger(L, len);
+    return 2;
+}
+
 static const luaL_Reg lbuffer_reg[] = {
     { "size", lbuffer_size },
-    { "grow", lbuffer_grow },
     { "copy", lbuffer_copy },
     { "peek", lbuffer_peek },
     { "read", lbuffer_read },
+    { "data", lbuffer_data },
     { "close", lbuffer_close },
     { "reset", lbuffer_reset },
     { "erase", lbuffer_erase },

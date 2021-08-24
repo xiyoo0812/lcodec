@@ -95,20 +95,19 @@ size_t buffer_erase(struct buffer* buf, size_t erase_len) {
     return 0;
 }
 
-size_t buffer_peek(struct buffer* buf, uint8_t* dest, size_t peek_len) {
+uint8_t* buffer_peek(struct buffer* buf, size_t peek_len) {
     size_t data_len = buf->tail - buf->head;
-    if (peek_len > 0 && data_len > peek_len) {
-        dest = buf->head;
-        return peek_len;
+    if (peek_len > 0 && data_len >= peek_len) {
+        return buf->head;
     }
     return 0;
 }
 
 size_t buffer_read(struct buffer* buf, uint8_t* dest, size_t read_len) {
     size_t data_len = buf->tail - buf->head;
-    if (read_len > 0 && data_len > read_len) {
+    if (read_len > 0 && data_len >= read_len) {
         memcpy(dest, buf->head, read_len);
-        buf->tail += read_len;
+        buf->head += read_len;
         return read_len;
     }
     return 0;

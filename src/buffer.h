@@ -34,7 +34,7 @@ LBUFF_API size_t buffer_erase(struct buffer* buf, size_t erase_len);
 //全部数据
 LBUFF_API uint8_t* buffer_data(struct buffer* buf, size_t* len);
 //尝试读出
-LBUFF_API size_t buffer_peek(struct buffer* buf, uint8_t* dest, size_t peek_len);
+LBUFF_API uint8_t* buffer_peek(struct buffer* buf, size_t peek_len);
 //读出
 LBUFF_API size_t buffer_read(struct buffer* buf, uint8_t* dest, size_t read_len);
 //返回可写指针

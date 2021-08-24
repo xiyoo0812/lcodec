@@ -245,7 +245,8 @@ if (buffer_read(buf, (uint8_t*)&value, sizeof(value)) == 0) {\
 #define DECODE_VALUE(L, buf, type, loadL) {\
     READ_VALUE(L, buf, type)\
     loadL(L, value); \
-}
+}\
+break;
 
 lua_Integer decode_integer(lua_State* L, struct buffer* buf, int sub_type) {
     switch (sub_type) {
@@ -360,12 +361,18 @@ void serialize_table(lua_State* L, struct buffer* buf, int index, int depth) {
     if (index < 0) {
         index = lua_gettop(L) + index + 1;
     }
+    int size = 0;
     lua_pushnil(L);
-    SERIALIZE_VALUE(buf, "{"); \
+    SERIALIZE_VALUE(buf, "{");
     while (lua_next(L, index) != 0) {
-        if (lua_isinteger(L, -2)){
-            SERIALIZE_QUOTE(buf, lua_tostring(L, -2), "[", "]=");
-            serialize(L, buf, -1, depth);
+        if (size++ > 0) {
+            SERIALIZE_VALUE(buf, ",");
+        }
+        if (lua_isnumber(L, -2)) {
+            lua_pushnil(L);
+            lua_copy(L, -3, -1);
+            SERIALIZE_QUOTE(buf, lua_tostring(L, -1), "[", "]=");
+            lua_pop(L, 1);
         }
         else if (lua_type(L, -2) == LUA_TSTRING) {
             SERIALIZE_VALUE(buf, lua_tostring(L, -2));
@@ -375,10 +382,9 @@ void serialize_table(lua_State* L, struct buffer* buf, int index, int depth) {
             serialize(L, buf, -2, depth);
         }
         serialize(L, buf, -1, depth);
-        SERIALIZE_VALUE(buf, ",");
         lua_pop(L, 1);
     }
-    SERIALIZE_VALUE(buf, "}"); \
+    SERIALIZE_VALUE(buf, "}");
 }
 
 void serialize(lua_State* L, struct buffer* buf, int index, int depth) {
