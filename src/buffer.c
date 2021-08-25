@@ -1,5 +1,4 @@
 #include "buffer.h"
-#include <assert.h>
 #include <memory.h>
 
 #define BUFFER_MAX 65535 * 65535    //1GB

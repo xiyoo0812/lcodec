@@ -14,9 +14,14 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
 
 #ifndef LBUFF_EXPORT
+#include "shm.h"
 #include "buffer.h"
+#include "bufqueue.h"
 #endif
 
 #ifdef __cplusplus

@@ -12,13 +12,19 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\buffer.c" />
+    <ClCompile Include="src\bufpool.c" />
+    <ClCompile Include="src\bufqueue.c" />
     <ClCompile Include="src\lbuffer.c" />
     <ClCompile Include="src\serialize.c" />
+    <ClCompile Include="src\shm.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\buffer.h" />
+    <ClInclude Include="src\bufpool.h" />
+    <ClInclude Include="src\bufqueue.h" />
     <ClInclude Include="src\lbuffer.h" />
     <ClInclude Include="src\serialize.h" />
+    <ClInclude Include="src\shm.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{DDEA1A95-D02A-411F-B34A-ABFFCA7FF63C}</ProjectGuid>

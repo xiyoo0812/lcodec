@@ -41,7 +41,7 @@ struct share_string {
 };
 
 struct share_string* string_alloc(uint16_t index) {
-    struct share_string* s = malloc(sizeof(struct share_string));
+    struct share_string* s = (struct share_string*)malloc(sizeof(struct share_string));
     s->index = index;
     s->next = NULL;
     s->buf = NULL;

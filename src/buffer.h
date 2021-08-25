@@ -1,8 +1,6 @@
 #ifndef __BUFFER_H__
 #define __BUFFER_H__
 
-#include <stdlib.h>
-#include <stdint.h>
 #include "lbuffer.h"
 
 #ifdef __cplusplus
