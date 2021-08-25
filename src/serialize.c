@@ -12,10 +12,11 @@
 #define TYPE_TABLE          4
 #define TYPE_STRING         5
 
-#define TYPE_STRING_INDEX   0
+#define TYPE_STRING_IDX1    0
 #define TYPE_STRING_BYTE    1
 #define TYPE_STRING_SHORT   2
-#define TYPE_STRING_LONG    3
+#define TYPE_STRING_IDX2    3
+#define TYPE_STRING_LONG    4
 
 #define TYPE_TABLE_HEAD     1
 #define TYPE_TABLE_TAIL     2
@@ -48,13 +49,12 @@ struct share_string* string_alloc(uint16_t index) {
     return s;
 }
 
-struct share_string* string_push(struct share_string* tail, uint8_t* buf, int sz) {
-    tail->len = sz;
-    tail->buf = malloc(sz);
-    memcpy(tail->buf, buf, sz);
-    uint16_t index = tail->index;
-    tail = tail->next = string_alloc(index + 1);
-    return tail;
+void string_push(struct share_string** tail, uint8_t* buf, int sz) {
+    (*tail)->len = sz;
+    (*tail)->buf = malloc(sz);
+    memcpy((*tail)->buf, buf, sz);
+    uint16_t index = (*tail)->index;
+    (*tail) = (*tail)->next = string_alloc(index + 1);
 }
 
 uint16_t index_find(struct share_string* head, uint8_t* str, int sz) {
@@ -65,7 +65,7 @@ uint16_t index_find(struct share_string* head, uint8_t* str, int sz) {
         }
         ptr = ptr->next;
     }
-    string_push(ptr, str, sz);
+    string_push(&ptr, str, sz);
     return 0;
 }
 
@@ -93,42 +93,41 @@ void string_close(struct share_string* head) {
     }
 }
 
-#define STRING_READ(buf, tail, type, dest, sz_type) {\
-    type sz = 0;\
-    if (buffer_read(buf, (uint8_t*)&sz, sz_type)) {\
-        if (buffer_read(buf, dest, sz)) {\
-            string_push(tail, dest, sz);\
-            return sz;\
+#define STRING_READ(buf, tail, type, sz, sz_len) {\
+    type size = 0;\
+    if (buffer_read(buf, (uint8_t*)&size, sz_len)) {\
+        uint8_t* dest = (uint8_t*)malloc(size);\
+        if (buffer_read(buf, dest, size)) {\
+            string_push(tail, dest, size);\
+            *sz = size;\
+            return dest;\
         }\
     }\
-    return 0;\
+    return NULL;\
 }
 
-int index_string_read(struct buffer* buf, struct share_string* head, uint8_t* dest) {
-    uint16_t index = 0;
-    if (buffer_read(buf, (uint8_t*)&index, 2) == 0) {
-        uint32_t sz = 0;
-        dest = string_find(head, index, &sz);
-        return sz;
-    }
-    return 0;
+#define INX_STRING_READ(buf, head, type, sz) {\
+    type index = 0;\
+    if (buffer_read(buf, (uint8_t*)&index, sizeof(index))) {\
+        return string_find(head, index, sz);\
+    }\
+    return NULL;\
 }
 
-int string_read(struct buffer* buf, struct share_string* head, struct share_string* tail, uint8_t type, uint8_t* dest) {
+uint8_t* string_read(struct buffer* buf, struct share_string* head, struct share_string** tail, uint8_t type, uint32_t* sz) {
     switch (type) {
     case TYPE_STRING_BYTE:
-        STRING_READ(buf, tail, uint8_t, dest, type);
-        break;
+        STRING_READ(buf, tail, uint8_t, sz, type);
     case TYPE_STRING_SHORT:
-        STRING_READ(buf, tail, uint16_t, dest, type);
-        break;
+        STRING_READ(buf, tail, uint16_t, sz, type);
     case TYPE_STRING_LONG:
-        STRING_READ(buf, tail, uint32_t, dest, type);
-        break;
-    case TYPE_STRING_INDEX:
-        return index_string_read(buf, head, dest);
+        STRING_READ(buf, tail, uint32_t, sz, type);
+    case TYPE_STRING_IDX1:
+        INX_STRING_READ(buf, head, uint8_t, sz);
+    case TYPE_STRING_IDX2:
+        INX_STRING_READ(buf, head, uint16_t, sz);
     }
-    return 0;
+    return NULL;
 }
 
 #define ENCODE_TYPE(L, buf, type) {\
@@ -157,8 +156,10 @@ int string_read(struct buffer* buf, struct share_string* head, struct share_stri
     size_t sz = 0;\
     uint8_t* str = (uint8_t*)lua_tolstring(L, index, &sz);\
     uint16_t sindex = index_find(head, str, sz);\
-    if (sindex > 0) \
-    ENCODE_VALUE(L, buf, COMBINE_TYPE(TYPE_STRING, TYPE_STRING_INDEX), sindex, uint16_t)\
+    if (sindex > 0xff) \
+    ENCODE_VALUE(L, buf, COMBINE_TYPE(TYPE_STRING, TYPE_STRING_IDX2), sindex, uint16_t)\
+    else if (sindex > 0) \
+    ENCODE_VALUE(L, buf, COMBINE_TYPE(TYPE_STRING, TYPE_STRING_IDX1), sindex, uint8_t)\
     else if (sz <= 0xff)\
     ENCODE_COMBINE_STRING(L, buf, str, sz, COMBINE_TYPE(TYPE_STRING, TYPE_STRING_BYTE), uint8_t)\
     else if (sz <= 0xffff)\
@@ -179,9 +180,9 @@ int string_read(struct buffer* buf, struct share_string* head, struct share_stri
     ENCODE_VALUE(L, buf, COMBINE_TYPE(TYPE_INTEGER, TYPE_INTEGER_UI16), val, uint16_t)\
     else if (val > 0)\
     ENCODE_VALUE(L, buf, COMBINE_TYPE(TYPE_INTEGER, TYPE_INTEGER_UI8), val, uint8_t)\
-    else if (val < 0x8000)\
+    else if (val < -0x8000)\
     ENCODE_VALUE(L, buf, COMBINE_TYPE(TYPE_INTEGER, TYPE_INTEGER_I32), val, int32_t)\
-    else if (val < 0x80)\
+    else if (val < -0x80)\
     ENCODE_VALUE(L, buf, COMBINE_TYPE(TYPE_INTEGER, TYPE_INTEGER_I16), val, int16_t)\
     else\
     ENCODE_VALUE(L, buf, COMBINE_TYPE(TYPE_INTEGER, TYPE_INTEGER_I8), val, int8_t)\
@@ -248,10 +249,11 @@ if (buffer_read(buf, (uint8_t*)&value, sizeof(value)) == 0) {\
 }\
 break;
 
-lua_Integer decode_integer(lua_State* L, struct buffer* buf, int sub_type) {
+void decode_integer(lua_State* L, struct buffer* buf, int sub_type) {
     switch (sub_type) {
     case TYPE_INTEGER_ZERO:
-        return 0;
+        lua_pushinteger(L, 0);
+        break;
     case TYPE_INTEGER_I8:
         DECODE_VALUE(L, buf, int8_t, lua_pushinteger)
     case TYPE_INTEGER_UI8: 
@@ -267,35 +269,35 @@ lua_Integer decode_integer(lua_State* L, struct buffer* buf, int sub_type) {
     case TYPE_INTEGER_I64: 
         DECODE_VALUE(L, buf, int64_t, lua_pushinteger)
     default:
-        luaL_error(L, "decode can't read integer"); \
-        return 0;
+        luaL_error(L, "decode can't read integer");
     }
 }
 
-void decode_string(lua_State* L, struct share_string* head, struct share_string* tail, struct buffer* buf, int sub_type) {
-    char* str = NULL;
-    int len = string_read(buf, head, tail, sub_type, str);
-    if (len == 0) {
+void decode_string(lua_State* L, struct share_string* head, struct share_string** tail, struct buffer* buf, int sub_type) {
+    uint32_t len = 0;
+    uint8_t* str = string_read(buf, head, tail, sub_type, &len);
+    if (!str) {
         luaL_error(L, "decode can't read string");
     }
     lua_pushlstring(L, str, len);
 }
 
-int decode_one(lua_State* L, struct share_string* head, struct share_string* tail, struct buffer* buf);
-void decode_table(lua_State* L, struct share_string* head, struct share_string* tail, struct buffer* buf, int sub_type) {
+int decode_one(lua_State* L, struct share_string* head, struct share_string** tail, struct buffer* buf);
+void decode_table(lua_State* L, struct share_string* head, struct share_string** tail, struct buffer* buf, int sub_type) {
     if (sub_type == TYPE_TABLE_HEAD) {
-        uint8_t type = 0;
         uint8_t ttail = COMBINE_TYPE(TYPE_TABLE, TYPE_TABLE_TAIL);
         lua_createtable(L, 0, 0);
         do {
-            type = decode_one(L, head, tail, buf);
+            if (decode_one(L, head, tail, buf) == ttail) {
+                break;
+            }
             decode_one(L, head, tail, buf);
             lua_rawset(L, -3);
-        } while (type != ttail);
+        } while (1);
     }
 }
 
-void decode_value(lua_State* L, struct share_string* head, struct share_string* tail, struct buffer* buf, int type, int sub_type) {
+void decode_value(lua_State* L, struct share_string* head, struct share_string** tail, struct buffer* buf, int type, int sub_type) {
     switch (type) {
     case TYPE_NIL:
         lua_pushnil(L);
@@ -321,7 +323,7 @@ void decode_value(lua_State* L, struct share_string* head, struct share_string* 
     }
 }
 
-int decode_one(lua_State* L, struct share_string* head, struct share_string* tail, struct buffer* buf) {
+int decode_one(lua_State* L, struct share_string* head, struct share_string** tail, struct buffer* buf) {
     uint8_t type = 0;
     if (buffer_read(buf, &type, sizeof(type)) == 0) {
         luaL_error(L, "unserialize can't unpack one value");
@@ -346,7 +348,7 @@ void decode(lua_State* L, struct buffer* buf) {
         uint8_t type = 0;
         if (buffer_read(buf, (char*)&type, 1) == 0)
             break;
-        decode_value(L, head, tail, buf, type & 0x7, type >> 3);
+        decode_value(L, head, &tail, buf, type & 0x7, type >> 3);
     }
     string_close(head);
 }

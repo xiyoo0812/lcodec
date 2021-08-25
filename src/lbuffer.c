@@ -34,12 +34,14 @@ int ldecode(lua_State* L) {
     uint8_t* byte = (uint8_t*)luaL_checklstring(L, 1, &len);
     struct buffer* binary = buffer_alloc(LUA_ENCODE_SIZE);
     if (!buffer_apend(binary, byte, len)) {
+        buffer_close(binary);
         return luaL_error(L, "deserialize buff append");
     }
     uint32_t size;
     lua_settop(L, 0);
     buffer_read(binary, (uint8_t*)&size, sizeof(uint32_t));
     decode(L, binary);
+    buffer_close(binary);
     return lua_gettop(L);
 }
 
