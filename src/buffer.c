@@ -1,11 +1,10 @@
 #include "buffer.h"
 #include <assert.h>
-#include <stdlib.h>
 #include <memory.h>
 
 #define BUFFER_MAX 65535 * 65535    //1GB
 
-//整理内存
+//鏁寸悊鍐呭瓨
 size_t _buffer_regularize(struct buffer* buf) {
     size_t data_len = (size_t)(buf->tail - buf->head);
     if (buf->head > buf->data) {
@@ -18,7 +17,7 @@ size_t _buffer_regularize(struct buffer* buf) {
     return buf->size - data_len;
 }
 
-//重新设置长度
+//閲嶆柊璁剧疆闀垮害
 size_t _buffer_resize(struct buffer* buf, size_t size) {
     size_t data_len = (size_t)(buf->tail - buf->head);
     if (buf->size == size || size < data_len || size >(size_t)BUFFER_MAX) {

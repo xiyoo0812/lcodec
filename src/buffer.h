@@ -1,6 +1,7 @@
 #ifndef __BUFFER_H__
 #define __BUFFER_H__
 
+#include <stdlib.h>
 #include <stdint.h>
 #include "lbuffer.h"
 
@@ -17,29 +18,29 @@ struct buffer {
     size_t size;
 };
 
-//·ÖÅäbuffer
+//åˆ†é…buffer
 LBUFF_API struct buffer* buffer_alloc(size_t size);
-//ÊÍ·Åbuffer
+//é‡Šæ”¾buffer
 LBUFF_API void buffer_close(struct buffer* buf);
-//ÖØÖÃ
+//é‡ç½®
 LBUFF_API void buffer_reset(struct buffer* buf);
-//»ñÈ¡buffsize
+//è·å–buffsize
 LBUFF_API size_t buffer_size(struct buffer* buf);
-//¸´ÖÆ
+//å¤åˆ¶
 LBUFF_API size_t buffer_copy(struct buffer* buf, size_t offset, const uint8_t* src, size_t src_len);
-//Ğ´Èë
+//å†™å…¥
 LBUFF_API size_t buffer_apend(struct buffer* buf, const uint8_t* src, size_t src_len);
-//ÒÆ¶¯Í·Ö¸Õë
+//ç§»åŠ¨å¤´æŒ‡é’ˆ
 LBUFF_API size_t buffer_erase(struct buffer* buf, size_t erase_len);
-//È«²¿Êı¾İ
+//å…¨éƒ¨æ•°æ®
 LBUFF_API uint8_t* buffer_data(struct buffer* buf, size_t* len);
-//³¢ÊÔ¶Á³ö
+//å°è¯•è¯»å‡º
 LBUFF_API uint8_t* buffer_peek(struct buffer* buf, size_t peek_len);
-//¶Á³ö
+//è¯»å‡º
 LBUFF_API size_t buffer_read(struct buffer* buf, uint8_t* dest, size_t read_len);
-//·µ»Ø¿ÉĞ´Ö¸Õë
+//è¿”å›å¯å†™æŒ‡é’ˆ
 LBUFF_API uint8_t* buffer_attach(struct buffer* buf, size_t len);
-//ÒÆ¶¯Î²Ö¸Õë
+//ç§»åŠ¨å°¾æŒ‡é’ˆ
 LBUFF_API size_t buffer_grow(struct buffer* buf, size_t graw_len);
 
 #ifdef __cplusplus

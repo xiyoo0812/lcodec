@@ -13,15 +13,15 @@
 #define  LUA_BUFFER_META    "_LUA_BUFFER_META"
 
 int lencode(lua_State* L) {
-    //分配资源
+    //鍒嗛厤璧勬簮
     uint32_t size = 0;
     struct buffer* binary = buffer_alloc(LUA_ENCODE_SIZE);
     buffer_apend(binary, (uint8_t*)&size, sizeof(uint32_t));
     encode(L, binary, 0);
-    //写入size
+    //鍐欏叆size
     size = buffer_size(binary) - sizeof(uint32_t);
     buffer_copy(binary, 0, (uint8_t*)&size, sizeof(uint32_t));
-    //返回
+    //杩斿洖
     size_t len;
     uint8_t* byte = buffer_data(binary, &len);
     lua_pushlstring(L, byte, len);
