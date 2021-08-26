@@ -20,27 +20,25 @@ void fixblock_close(struct fixblock* head) {
     }
 }
 
-struct bufpool* pool_alloc(uint32_t fixsize, uint16_t graw_size) {
+struct bufpool* bufpool_alloc(uint32_t fixsize, uint16_t graw_size) {
     struct bufpool* pool = (struct bufpool*)malloc(sizeof(struct bufpool));
     pool->head = pool->tail = pool->first_free = NULL;
     pool->graw_size = graw_size;
     pool->fix_size = fixsize;
+    pool->capacity = 0;
     pool->used = 0;
     return pool;
 }
 
-uint32_t pool_used(struct bufpool* pool) {
-    return pool->used;
-}
-
-void pool_close(struct bufpool* pool) {
+void bufpool_close(struct bufpool* pool) {
     fixblock_close(pool->head);
     pool->head = pool->tail = pool->first_free = NULL;
+    pool->capacity = 0;
     pool->used = 0;
     free(pool);
 }
 
-uint8_t* pool_malloc(struct bufpool* pool) {
+uint8_t* bufpool_malloc(struct bufpool* pool) {
     if (!pool->first_free) {
         for (uint16_t i = 0; i < pool->graw_size; ++i) {
             struct fixblock* fb = fixblock_alloc(pool->fix_size);
@@ -54,6 +52,7 @@ uint8_t* pool_malloc(struct bufpool* pool) {
                 pool->first_free = fb;
             }
             pool->tail = fb;
+            pool->capacity++;
         }
         struct fixblock* nfb = pool->first_free;
         while (nfb) {
@@ -67,7 +66,7 @@ uint8_t* pool_malloc(struct bufpool* pool) {
     return block->data;
 }
 
-void pool_free(struct bufpool* pool, uint8_t* data){
+void bufpool_free(struct bufpool* pool, uint8_t* data){
     struct fixblock* block = (struct fixblock*)data;
     block->next_free = pool->first_free;
     pool->first_free = block;
