@@ -67,11 +67,11 @@ uint8_t* attach_shm(size_t shm_id, size_t size, size_t* shm_handle) {
     return shm_buff;
 }
 
-void detach_shm(uint8_t* shm_buff, lsize_tong shm_handle) {
+void detach_shm(uint8_t* shm_buff, size_t shm_handle) {
     shmdt(shm_buff);
 }
 
-void delete_shm(long shm_handle) {
+void delete_shm(size_t shm_handle) {
     if (shm_handle > 0) {
         shmctl(shm_handle, IPC_RMID, NULL);
     }
