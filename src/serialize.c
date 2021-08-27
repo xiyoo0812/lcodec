@@ -233,7 +233,7 @@ void encode_one(lua_State* L, struct share_string* head, struct buffer* buf, int
         encode_table(L, head, buf, index, depth + 1);
         break;
     default:
-        luaL_error(L, "unsupport type %s to encode", lua_typename(L, type));
+        break;
     }
 }
 
@@ -318,7 +318,7 @@ void decode_value(lua_State* L, struct share_string* head, struct share_string**
         decode_table(L, head, tail, buf, sub_type);
         break;
     default:
-        luaL_error(L, "decode can't push value");
+        luaL_error(L, "decode can't push value (unsupport type)");
         break;
     }
 }
@@ -358,6 +358,7 @@ void decode(lua_State* L, struct buffer* buf) {
 SERIALIZE_VALUE(buf, l); \
 SERIALIZE_VALUE(buf, val); \
 SERIALIZE_VALUE(buf, r);
+#define SERIALIZE_UDATA(buf, val) SERIALIZE_QUOTE(buf, val ? val : "userdata(null)", "'", "'")
 
 void serialize_table(lua_State* L, struct buffer* buf, int index, int depth) {
     if (index < 0) {
@@ -409,6 +410,10 @@ void serialize(lua_State* L, struct buffer* buf, int index, int depth) {
         break;
     case LUA_TTABLE:
         serialize_table(L, buf, index, depth + 1);
+        break;
+    case LUA_TUSERDATA:
+    case LUA_TLIGHTUSERDATA:
+        SERIALIZE_UDATA(buf, lua_tostring(L, index));
         break;
     default:
         luaL_error(L, "unsupport type %s to serialize", lua_typename(L, type));
