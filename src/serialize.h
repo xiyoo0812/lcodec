@@ -13,7 +13,7 @@ extern "C" {
 void encode(lua_State* L, struct buffer* buf, int from);
 void decode(lua_State* L, struct buffer* buf);
 
-void serialize(lua_State* L, struct buffer* buf, int index, int depth);
+void serialize(lua_State* L, struct buffer* buf, int index, int depth, int crcn);
 
 #ifdef __cplusplus
 }

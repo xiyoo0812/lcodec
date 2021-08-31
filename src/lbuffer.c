@@ -47,7 +47,7 @@ int ldecode(lua_State* L) {
 
 int lserialize(lua_State* L) {
     struct buffer* binary = buffer_alloc(LUA_SERIALIZE_SIZE);
-    serialize(L, binary, 1, 1);
+    serialize(L, binary, 1, 1, luaL_optinteger(L, 2, 0));
     size_t len;
     uint8_t* byte = buffer_data(binary, &len);
     lua_pushlstring(L, byte, len);

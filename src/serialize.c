@@ -359,17 +359,27 @@ SERIALIZE_VALUE(buf, l); \
 SERIALIZE_VALUE(buf, val); \
 SERIALIZE_VALUE(buf, r);
 #define SERIALIZE_UDATA(buf, val) SERIALIZE_QUOTE(buf, val ? val : "userdata(null)", "'", "'")
+#define SERIALIZE_CRCN(buf, cnt, line) {\
+    if(line > 0) {\
+        buffer_apend(buf, "\n", 1);\
+        for(int i = 0; i < cnt - 1; ++i) {\
+            buffer_apend(buf, "\t", 1);\
+        }\
+    }\
+}
 
-void serialize_table(lua_State* L, struct buffer* buf, int index, int depth) {
+void serialize_table(lua_State* L, struct buffer* buf, int index, int depth, int line) {
     if (index < 0) {
         index = lua_gettop(L) + index + 1;
     }
     int size = 0;
     lua_pushnil(L);
     SERIALIZE_VALUE(buf, "{");
+    SERIALIZE_CRCN(buf, depth, line);
     while (lua_next(L, index) != 0) {
         if (size++ > 0) {
             SERIALIZE_VALUE(buf, ",");
+            SERIALIZE_CRCN(buf, depth, line);
         }
         if (lua_isnumber(L, -2)) {
             lua_pushnil(L);
@@ -382,15 +392,16 @@ void serialize_table(lua_State* L, struct buffer* buf, int index, int depth) {
             SERIALIZE_VALUE(buf, "=");
         }
         else {
-            serialize(L, buf, -2, depth);
+            serialize(L, buf, -2, depth, line);
         }
-        serialize(L, buf, -1, depth);
+        serialize(L, buf, -1, depth, line);
         lua_pop(L, 1);
     }
+    SERIALIZE_CRCN(buf, depth - 1, line);
     SERIALIZE_VALUE(buf, "}");
 }
 
-void serialize(lua_State* L, struct buffer* buf, int index, int depth) {
+void serialize(lua_State* L, struct buffer* buf, int index, int depth, int line) {
     if (depth > MAX_DEPTH) {
         luaL_error(L, "serialize can't pack too depth table");
     }
@@ -409,7 +420,7 @@ void serialize(lua_State* L, struct buffer* buf, int index, int depth) {
         SERIALIZE_VALUE(buf, lua_tostring(L, index));
         break;
     case LUA_TTABLE:
-        serialize_table(L, buf, index, depth + 1);
+        serialize_table(L, buf, index, depth + 1, line);
         break;
     case LUA_TUSERDATA:
     case LUA_TLIGHTUSERDATA:
