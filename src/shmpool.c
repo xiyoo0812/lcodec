@@ -59,36 +59,77 @@ void delete_shm(size_t shm_handle) {
 }
 #endif
 
-struct shmblock* shmblock_alloc(uint8_t* data, uint32_t* offset, uint32_t size) {
-    struct shmblock* fb = (struct shmblock*)(data + *offset);
-    *offset += sizeof(struct shmblock);
-    fb->data = (uint8_t*)(data + *offset);
-    fb->next_free = NULL;
-    fb->next = NULL;
-    *offset += size;
-    return fb;
+typedef struct shmblock {
+    uint8_t* data;
+    uint16_t index;
+    uint16_t next_free;
+} shm_block;
+
+shm_block* shmblock_find(shm_pool* pool, uint16_t index) {
+    if (index > pool->block_num || index == 0) {
+        return NULL;
+    }
+    size_t block_size = sizeof(shm_block) + pool->fix_size;
+    return (shm_block*)(pool->shm_data + block_size * (index - 1));
 }
 
-struct shmpool* shmpool_alloc(uint32_t fixsize, uint16_t shm_size, size_t shm_id) {
-    size_t handle = 0, offset = 0;
-    uint8_t* shm_data = attach_shm(shm_id, shm_size, &handle);
+shm_block* shmblock_alloc(shm_pool* pool, int16_t index, uint32_t fix_size) {
+    size_t block_size = sizeof(shm_block) + fix_size;
+    shm_block* shb = (shm_block*)(pool->shm_data + (block_size - 1));
+    shb->next_free = (index < pool->block_num) ? index + 1 : 0;
+    shb->data = (uint8_t*)(shb) + sizeof(shm_block);
+    shb->index = index;
+    return shb;
+}
+
+shm_pool* shmpool_alloc(uint32_t fixsize, uint16_t block_num, size_t shm_id) {
+    size_t handle = 0;
+    size_t block_size = sizeof(shm_block) + fixsize;
+    uint8_t* shm_data = attach_shm(shm_id, block_size * block_num, &handle);
     if (!shm_data) {
         return NULL;
     }
-    struct shmpool* pool = (struct shmpool*)shm_data;
+    shm_pool* pool = (shm_pool*)shm_data;
     pool->shm_data = shm_data;
-    pool->shm_handle = handle;
-    if (pool->used) {
+    if (pool->shm_handle) {
+        pool->shm_handle = handle;
         return pool;
     }
-    pool->head = pool->tail = pool->first_free = NULL;
-    pool->shm_size = shm_size;
+    for (uint16_t i = 0; i < pool->block_num; ++i) {
+        int16_t index = i + 1;
+        shm_block* shb = shmblock_alloc(pool, index, fixsize);
+        if (!pool->first_free) {
+            pool->first_free = index;
+        }
+    }
+    pool->shm_handle = handle;
+    pool->block_num = block_num;
     pool->fix_size = fixsize;
     pool->used = 0;
     return pool;
 }
 
-void shmpool_close(struct shmpool* pool){
+void shmpool_close(shm_pool* pool){
     detach_shm(pool->shm_data, pool->shm_handle);
     delete_shm(pool->shm_handle);
+}
+
+uint8_t* shmpool_malloc(shm_pool* pool){
+    if (!pool->first_free) {
+        return NULL;
+    }
+    shm_block* block = shmblock_find(pool, pool->first_free);
+    if (!block){
+        return NULL;
+    }
+    pool->first_free = block->next_free;
+    pool->used++;
+    return block->data;
+}
+
+void shmpool_free(shm_pool* pool, uint8_t* data){
+    shm_block* block = (shm_block*)(data - sizeof(shm_block));
+    block->next_free = pool->first_free;
+    pool->first_free = block->index;
+    pool->used--;
 }

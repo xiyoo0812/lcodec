@@ -10,10 +10,10 @@ extern "C" {
 #include <lua.h>
 #include <lauxlib.h>
 
-void encode(lua_State* L, struct buffer* buf, int from);
-void decode(lua_State* L, struct buffer* buf);
+void encode(lua_State* L, var_buffer* buf, int from);
+void decode(lua_State* L, var_buffer* buf);
 
-void serialize(lua_State* L, struct buffer* buf, int index, int depth, int crcn);
+void serialize(lua_State* L, var_buffer* buf, int index, int depth, int crcn);
 
 #ifdef __cplusplus
 }

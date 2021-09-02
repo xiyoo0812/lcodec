@@ -1,27 +1,23 @@
 #include "bufpool.h"
 
-struct fixblock* fixblock_alloc(uint32_t size) {
-    struct fixblock* fb = (struct fixblock*)malloc(sizeof(struct fixblock));
-    fb->data = (uint8_t*)malloc(size);
+fix_block* fixblock_alloc(uint32_t size) {
+    fix_block* fb = (fix_block*)malloc(sizeof(fix_block) + size);
+    fb->data = (uint8_t*)(fb) + sizeof(fix_block);
     fb->next_free = NULL;
     fb->next = NULL;
     return fb;
 }
 
-void fixblock_close(struct fixblock* head) {
+void fixblock_close(fix_block* head) {
     while (head) {
-        struct fixblock* next = head->next;
-        if (head->data) {
-            free(head->data);
-            head->data = NULL;
-        }
+        fix_block* next = head->next;
         free(head);
         head = next;
     }
 }
 
-struct bufpool* bufpool_alloc(uint32_t fixsize, uint16_t graw_size) {
-    struct bufpool* pool = (struct bufpool*)malloc(sizeof(struct bufpool));
+buffer_pool* bufpool_alloc(uint32_t fixsize, uint16_t graw_size) {
+    buffer_pool* pool = (buffer_pool*)malloc(sizeof(buffer_pool));
     pool->head = pool->tail = pool->first_free = NULL;
     pool->graw_size = graw_size;
     pool->fix_size = fixsize;
@@ -30,7 +26,7 @@ struct bufpool* bufpool_alloc(uint32_t fixsize, uint16_t graw_size) {
     return pool;
 }
 
-void bufpool_close(struct bufpool* pool) {
+void bufpool_close(buffer_pool* pool) {
     fixblock_close(pool->head);
     pool->head = pool->tail = pool->first_free = NULL;
     pool->capacity = 0;
@@ -38,36 +34,35 @@ void bufpool_close(struct bufpool* pool) {
     free(pool);
 }
 
-uint8_t* bufpool_malloc(struct bufpool* pool) {
+uint8_t* bufpool_malloc(buffer_pool* pool) {
     if (!pool->first_free) {
         for (uint16_t i = 0; i < pool->graw_size; ++i) {
-            struct fixblock* fb = fixblock_alloc(pool->fix_size);
+            fix_block* fb = fixblock_alloc(pool->fix_size);
             if (!pool->head) {
                 pool->head = fb;
             }
             if (pool->tail) {
                 pool->tail->next = fb;
             }
-            if (!pool->first_free) {
+            if (pool->first_free) {
+                fb->next_free = pool->first_free;
+                pool->first_free = fb;
+            }
+            else {
                 pool->first_free = fb;
             }
             pool->tail = fb;
             pool->capacity++;
         }
-        struct fixblock* nfb = pool->first_free;
-        while (nfb) {
-            nfb->next_free = nfb->next;
-            nfb = nfb->next;
-        }
     }
-    struct fixblock* block = pool->first_free;
-    pool->first_free = block->next;
+    fix_block* block = pool->first_free;
+    pool->first_free = block->next_free;
     pool->used++;
     return block->data;
 }
 
-void bufpool_free(struct bufpool* pool, uint8_t* data){
-    struct fixblock* block = (struct fixblock*)data;
+void bufpool_free(buffer_pool* pool, uint8_t* data){
+    fix_block* block = (fix_block*)(data - sizeof(fix_block));
     block->next_free = pool->first_free;
     pool->first_free = block;
     pool->used--;

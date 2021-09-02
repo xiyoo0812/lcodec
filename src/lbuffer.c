@@ -15,7 +15,7 @@
 int lencode(lua_State* L) {
     //分配资源
     uint32_t size = 0;
-    struct buffer* binary = buffer_alloc(LUA_ENCODE_SIZE);
+    var_buffer* binary = buffer_alloc(LUA_ENCODE_SIZE);
     buffer_apend(binary, (uint8_t*)&size, sizeof(uint32_t));
     encode(L, binary, 0);
     //写入size
@@ -32,7 +32,7 @@ int lencode(lua_State* L) {
 int ldecode(lua_State* L) {
     size_t len;
     uint8_t* byte = (uint8_t*)luaL_checklstring(L, 1, &len);
-    struct buffer* binary = buffer_alloc(LUA_ENCODE_SIZE);
+    var_buffer* binary = buffer_alloc(LUA_ENCODE_SIZE);
     if (!buffer_apend(binary, byte, len)) {
         buffer_close(binary);
         return luaL_error(L, "deserialize buff append");
@@ -46,7 +46,7 @@ int ldecode(lua_State* L) {
 }
 
 int lserialize(lua_State* L) {
-    struct buffer* binary = buffer_alloc(LUA_SERIALIZE_SIZE);
+    var_buffer* binary = buffer_alloc(LUA_SERIALIZE_SIZE);
     serialize(L, binary, 1, 1, luaL_optinteger(L, 2, 0));
     size_t len;
     uint8_t* byte = buffer_data(binary, &len);
@@ -58,7 +58,7 @@ int lserialize(lua_State* L) {
 int lunserialize(lua_State* L) {
     size_t len;
     uint8_t* tmp = "return ";
-    struct buffer* binary = buffer_alloc(LUA_SERIALIZE_SIZE);
+    var_buffer* binary = buffer_alloc(LUA_SERIALIZE_SIZE);
     uint8_t* data = (uint8_t*)luaL_checklstring(L, 1, &len);
     buffer_apend(binary, tmp, strlen(tmp));
     buffer_apend(binary, data, len);
@@ -73,33 +73,33 @@ int lunserialize(lua_State* L) {
 }
 
 static int lbuffer_size(lua_State* L) {
-    struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
+    var_buffer* buf = (var_buffer*)lua_touserdata(L, 1);
     lua_pushinteger(L, buffer_size(buf));
     return 1;
 }
 
 static int lbuffer_close(lua_State* L) {
-    struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
+    var_buffer* buf = (var_buffer*)lua_touserdata(L, 1);
     buffer_close(buf);
     return 0;
 }
 
 static int lbuffer_reset(lua_State* L) {
-    struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
+    var_buffer* buf = (var_buffer*)lua_touserdata(L, 1);
     buffer_reset(buf);
     return 0;
 }
 
 static int lbuffer_append(lua_State* L) {
     size_t len;
-    struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
+    var_buffer* buf = (var_buffer*)lua_touserdata(L, 1);
     uint8_t* data = (uint8_t*)luaL_checklstring(L, 2, &len);
     lua_pushinteger(L, buffer_apend(buf, data, len));
     return 1;
 }
 
 static int lbuffer_erase(lua_State* L) {
-    struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
+    var_buffer* buf = (var_buffer*)lua_touserdata(L, 1);
     size_t erase_len = lua_tointeger(L, 2);
     lua_pushinteger(L, buffer_erase(buf, erase_len));
     return 1;
@@ -107,7 +107,7 @@ static int lbuffer_erase(lua_State* L) {
 
 static int lbuffer_copy(lua_State* L) {
     size_t len;
-    struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
+    var_buffer* buf = (var_buffer*)lua_touserdata(L, 1);
     uint8_t* data = (uint8_t*)luaL_checklstring(L, 2, &len);
     size_t offset = lua_tointeger(L, 3);
     lua_pushinteger(L, buffer_copy(buf, offset, data, len));
@@ -116,7 +116,7 @@ static int lbuffer_copy(lua_State* L) {
 
 static int lbuffer_peek(lua_State* L) {
     size_t len = lua_tointeger(L, 2);
-    struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
+    var_buffer* buf = (var_buffer*)lua_touserdata(L, 1);
     uint8_t* data = buffer_peek(buf, len);
     if (data) {
         lua_pushlstring(L, data, len);
@@ -127,7 +127,7 @@ static int lbuffer_peek(lua_State* L) {
 
 static int lbuffer_read(lua_State* L) {
     size_t len = lua_tointeger(L, 2);
-    struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
+    var_buffer* buf = (var_buffer*)lua_touserdata(L, 1);
     uint8_t* data = (uint8_t*)malloc(len);
     size_t size = buffer_read(buf, data, len);
     if (size > 0) {
@@ -139,7 +139,7 @@ static int lbuffer_read(lua_State* L) {
 
 static int lbuffer_data(lua_State* L) {
     size_t len;
-    struct buffer* buf = (struct buffer*)lua_touserdata(L, 1);
+    var_buffer* buf = (var_buffer*)lua_touserdata(L, 1);
     uint8_t* data = buffer_data(buf, &len);
     lua_pushlstring(L, data, len);
     lua_pushinteger(L, len);
@@ -161,7 +161,7 @@ static const luaL_Reg lbuffer_reg[] = {
 
 static int lbuffer_create(lua_State* L) {
     size_t size = lua_tointeger(L, 1);
-    struct buffer* buff = buffer_alloc(size);
+    var_buffer* buff = buffer_alloc(size);
     lua_pushlightuserdata(L, (void*)buff);
     if (luaL_getmetatable(L, LUA_BUFFER_META) != LUA_TTABLE) {
         lua_pop(L, 1);

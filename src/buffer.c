@@ -4,7 +4,7 @@
 #define BUFFER_MAX 65535 * 65535    //1GB
 
 //整理内存
-size_t _buffer_regularize(struct buffer* buf) {
+size_t _buffer_regularize(var_buffer* buf) {
     size_t data_len = (size_t)(buf->tail - buf->head);
     if (buf->head > buf->data) {
         if (data_len > 0){
@@ -17,7 +17,7 @@ size_t _buffer_regularize(struct buffer* buf) {
 }
 
 //重新设置长度
-size_t _buffer_resize(struct buffer* buf, size_t size) {
+size_t _buffer_resize(var_buffer* buf, size_t size) {
     size_t data_len = (size_t)(buf->tail - buf->head);
     if (buf->size == size || size < data_len || size >(size_t)BUFFER_MAX) {
         return buf->end - buf->tail;
@@ -30,8 +30,8 @@ size_t _buffer_resize(struct buffer* buf, size_t size) {
     return size - data_len;
 }
 
-struct buffer* buffer_alloc(size_t size) {
-    struct buffer* buf = (struct buffer*)malloc(sizeof(struct buffer));
+var_buffer* buffer_alloc(size_t size) {
+    var_buffer* buf = (var_buffer*)malloc(sizeof(var_buffer));
     buf->data = (uint8_t*)malloc(size);
     buf->end = buf->data + size;
     buf->head = buf->data;
@@ -41,7 +41,7 @@ struct buffer* buffer_alloc(size_t size) {
     return buf;
 }
 
-void buffer_close(struct buffer* buf) {
+void buffer_close(var_buffer* buf) {
     if (buf) {
         free(buf->data);
         buf->head = buf->tail = buf->end = buf->data = NULL;
@@ -50,18 +50,18 @@ void buffer_close(struct buffer* buf) {
     }
 }
 
-void buffer_reset(struct buffer* buf) {
+void buffer_reset(var_buffer* buf) {
     buf->data = (uint8_t*)realloc(buf->data, buf->ori_size);
     memset(buf->data, 0, buf->ori_size);
     buf->head = buf->tail = buf->data;
     buf->size = buf->ori_size;
 }
 
-size_t buffer_size(struct buffer* buf) {
+size_t buffer_size(var_buffer* buf) {
     return buf->tail - buf->head;
 }
 
-size_t buffer_copy(struct buffer* buf, size_t offset, const uint8_t* src, size_t src_len) {
+size_t buffer_copy(var_buffer* buf, size_t offset, const uint8_t* src, size_t src_len) {
     size_t data_len = buf->tail - buf->head;
     if (offset + src_len <= data_len) {
         memcpy(buf->head + offset, src, src_len);
@@ -70,7 +70,7 @@ size_t buffer_copy(struct buffer* buf, size_t offset, const uint8_t* src, size_t
     return 0;
 }
 
-size_t buffer_apend(struct buffer* buf, const uint8_t* src, size_t src_len) {
+size_t buffer_apend(var_buffer* buf, const uint8_t* src, size_t src_len) {
     uint8_t* target = buffer_attach(buf, src_len);
     if (target) {
         memcpy(target, src, src_len);
@@ -80,7 +80,7 @@ size_t buffer_apend(struct buffer* buf, const uint8_t* src, size_t src_len) {
     return 0;
 }
 
-size_t buffer_erase(struct buffer* buf, size_t erase_len) {
+size_t buffer_erase(var_buffer* buf, size_t erase_len) {
     if (buf->head + erase_len <= buf->tail) {
         buf->head += erase_len;
         size_t data_len = (size_t)(buf->tail - buf->head);
@@ -93,7 +93,7 @@ size_t buffer_erase(struct buffer* buf, size_t erase_len) {
     return 0;
 }
 
-uint8_t* buffer_peek(struct buffer* buf, size_t peek_len) {
+uint8_t* buffer_peek(var_buffer* buf, size_t peek_len) {
     size_t data_len = buf->tail - buf->head;
     if (peek_len > 0 && data_len >= peek_len) {
         return buf->head;
@@ -101,7 +101,7 @@ uint8_t* buffer_peek(struct buffer* buf, size_t peek_len) {
     return 0;
 }
 
-size_t buffer_read(struct buffer* buf, uint8_t* dest, size_t read_len) {
+size_t buffer_read(var_buffer* buf, uint8_t* dest, size_t read_len) {
     size_t data_len = buf->tail - buf->head;
     if (read_len > 0 && data_len >= read_len) {
         memcpy(dest, buf->head, read_len);
@@ -111,12 +111,12 @@ size_t buffer_read(struct buffer* buf, uint8_t* dest, size_t read_len) {
     return 0;
 }
 
-uint8_t* buffer_data(struct buffer* buf, size_t* len) {
+uint8_t* buffer_data(var_buffer* buf, size_t* len) {
     *len = (size_t)(buf->tail - buf->head);
     return buf->head;
 }
 
-uint8_t* buffer_attach(struct buffer* buf, size_t len) {
+uint8_t* buffer_attach(var_buffer* buf, size_t len) {
     size_t space_len = buf->end - buf->tail;
     if (space_len >= len) {
         return buf->tail;
@@ -137,7 +137,7 @@ uint8_t* buffer_attach(struct buffer* buf, size_t len) {
     return buf->tail;
 }
 
-size_t buffer_grow(struct buffer* buf, size_t graw_len) {
+size_t buffer_grow(var_buffer* buf, size_t graw_len) {
     if (buf->tail + graw_len <= buf->end) {
         buf->tail += graw_len;
         return graw_len;
