@@ -19,9 +19,11 @@ extern "C" {
 #include <stdlib.h>
 
 #ifndef LBUFF_EXPORT
-#include "shm.h"
+#include "shmpool.h"
+#include "bufpool.h"
 #include "buffer.h"
 #include "bufqueue.h"
+#include "serialize.h"
 #endif
 
 #ifdef __cplusplus
