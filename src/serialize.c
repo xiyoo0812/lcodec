@@ -40,7 +40,7 @@ typedef struct share_string {
     struct share_string* next;
 } shstring;
 
-shstring* string_alloc(uint16_t index) {
+static shstring* string_alloc(uint16_t index) {
     shstring* s = (shstring*)malloc(sizeof(shstring));
     s->index = index;
     s->next = NULL;
@@ -49,7 +49,7 @@ shstring* string_alloc(uint16_t index) {
     return s;
 }
 
-void string_push(shstring** tail, uint8_t* buf, int sz) {
+static void string_push(shstring** tail, uint8_t* buf, int sz) {
     (*tail)->len = sz;
     (*tail)->buf = malloc(sz);
     memcpy((*tail)->buf, buf, sz);
@@ -57,7 +57,7 @@ void string_push(shstring** tail, uint8_t* buf, int sz) {
     (*tail) = (*tail)->next = string_alloc(index + 1);
 }
 
-uint16_t index_find(shstring* head, uint8_t* str, int sz) {
+static uint16_t index_find(shstring* head, uint8_t* str, int sz) {
     shstring* ptr = head;
     while (ptr && ptr->buf) {
         if (strncmp(ptr->buf, str, sz) == 0){
@@ -69,7 +69,7 @@ uint16_t index_find(shstring* head, uint8_t* str, int sz) {
     return 0;
 }
 
-uint8_t* string_find(shstring* head, uint16_t index, int* sz) {
+static uint8_t* string_find(shstring* head, uint16_t index, int* sz) {
     shstring* ptr = head;
     while (ptr) {
         if (ptr->index == index) {
@@ -81,7 +81,7 @@ uint8_t* string_find(shstring* head, uint16_t index, int* sz) {
     return NULL;
 }
 
-void string_close(shstring* head) {
+static void string_close(shstring* head) {
     while (head) {
         shstring* next = head->next;
         if (head->buf) {
@@ -114,7 +114,7 @@ void string_close(shstring* head) {
     return NULL;\
 }
 
-uint8_t* string_read(var_buffer* buf, shstring* head, shstring** tail, uint8_t type, uint32_t* sz) {
+static uint8_t* string_read(var_buffer* buf, shstring* head, shstring** tail, uint8_t type, uint32_t* sz) {
     switch (type) {
     case TYPE_STRING_BYTE:
         STRING_READ(buf, tail, uint8_t, sz, type);
@@ -188,7 +188,7 @@ uint8_t* string_read(var_buffer* buf, shstring* head, shstring** tail, uint8_t t
     ENCODE_VALUE(L, buf, COMBINE_TYPE(TYPE_INTEGER, TYPE_INTEGER_I8), val, int8_t)\
 }
 
-void encode_number(lua_State* L, var_buffer* buf, int index) {
+static void encode_number(lua_State* L, var_buffer* buf, int index) {
     if (lua_isinteger(L, index)) {
         ENCODE_INTEGER(L, buf, index)
         return;
@@ -196,8 +196,8 @@ void encode_number(lua_State* L, var_buffer* buf, int index) {
     ENCODE_VALUE(L, buf, TYPE_NUMBER, lua_tonumber(L, index), lua_Number);
 }
 
-void encode_one(lua_State* L, shstring* head, var_buffer* buf, int index, int depth);
-void encode_table(lua_State* L, shstring* head, var_buffer* buf, int index, int depth) {
+static void encode_one(lua_State* L, shstring* head, var_buffer* buf, int index, int depth);
+static void encode_table(lua_State* L, shstring* head, var_buffer* buf, int index, int depth) {
     if (index < 0) {
         index = lua_gettop(L) + index + 1;
     }
@@ -211,7 +211,7 @@ void encode_table(lua_State* L, shstring* head, var_buffer* buf, int index, int 
     ENCODE_TYPE(L, buf, COMBINE_TYPE(TYPE_TABLE, TYPE_TABLE_TAIL));
 }
 
-void encode_one(lua_State* L, shstring* head, var_buffer* buf, int index, int depth) {
+static void encode_one(lua_State* L, shstring* head, var_buffer* buf, int index, int depth) {
     if (depth > MAX_DEPTH) {
         luaL_error(L, "encode can't pack too depth table");
     }
@@ -249,7 +249,7 @@ if (buffer_read(buf, (uint8_t*)&value, sizeof(value)) == 0) {\
 }\
 break;
 
-void decode_integer(lua_State* L, var_buffer* buf, int sub_type) {
+static void decode_integer(lua_State* L, var_buffer* buf, int sub_type) {
     switch (sub_type) {
     case TYPE_INTEGER_ZERO:
         lua_pushinteger(L, 0);
@@ -273,7 +273,7 @@ void decode_integer(lua_State* L, var_buffer* buf, int sub_type) {
     }
 }
 
-void decode_string(lua_State* L, shstring* head, shstring** tail, var_buffer* buf, int sub_type) {
+static void decode_string(lua_State* L, shstring* head, shstring** tail, var_buffer* buf, int sub_type) {
     uint32_t len = 0;
     uint8_t* str = string_read(buf, head, tail, sub_type, &len);
     if (!str) {
@@ -282,8 +282,8 @@ void decode_string(lua_State* L, shstring* head, shstring** tail, var_buffer* bu
     lua_pushlstring(L, str, len);
 }
 
-int decode_one(lua_State* L, shstring* head, shstring** tail, var_buffer* buf);
-void decode_table(lua_State* L, shstring* head, shstring** tail, var_buffer* buf, int sub_type) {
+static int decode_one(lua_State* L, shstring* head, shstring** tail, var_buffer* buf);
+static void decode_table(lua_State* L, shstring* head, shstring** tail, var_buffer* buf, int sub_type) {
     if (sub_type == TYPE_TABLE_HEAD) {
         uint8_t ttail = COMBINE_TYPE(TYPE_TABLE, TYPE_TABLE_TAIL);
         lua_createtable(L, 0, 0);
@@ -297,7 +297,7 @@ void decode_table(lua_State* L, shstring* head, shstring** tail, var_buffer* buf
     }
 }
 
-void decode_value(lua_State* L, shstring* head, shstring** tail, var_buffer* buf, int type, int sub_type) {
+static void decode_value(lua_State* L, shstring* head, shstring** tail, var_buffer* buf, int type, int sub_type) {
     switch (type) {
     case TYPE_NIL:
         lua_pushnil(L);
@@ -323,7 +323,7 @@ void decode_value(lua_State* L, shstring* head, shstring** tail, var_buffer* buf
     }
 }
 
-int decode_one(lua_State* L, shstring* head, shstring** tail, var_buffer* buf) {
+static int decode_one(lua_State* L, shstring* head, shstring** tail, var_buffer* buf) {
     uint8_t type = 0;
     if (buffer_read(buf, &type, sizeof(type)) == 0) {
         luaL_error(L, "unserialize can't unpack one value");
@@ -368,7 +368,7 @@ SERIALIZE_VALUE(buf, r);
     }\
 }
 
-void serialize_table(lua_State* L, var_buffer* buf, int index, int depth, int line) {
+static void serialize_table(lua_State* L, var_buffer* buf, int index, int depth, int line) {
     if (index < 0) {
         index = lua_gettop(L) + index + 1;
     }
