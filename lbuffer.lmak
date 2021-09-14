@@ -4,12 +4,8 @@ PROJECT_NAME = "lbuffer"
 --目标名字
 TARGET_NAME = "lbuffer"
 
---工程类型：static/dynamic/exe
+----工程类型: static/dynamic/exe
 PROJECT_TYPE = "dynamic"
-
---标准库版本
----std=gnu99/-std=c++11/-std=c++14
-STDC = "-std=gnu99"
 
 --需要的FLAGS
 FLAGS = {
@@ -21,7 +17,7 @@ INCLUDES = {
 	"../lua/lua"
 }
 
---LINUX需要定义的选项
+--需要定义的选项
 DEFINES = {
 	"LBUFF_EXPORT"
 }
@@ -35,3 +31,7 @@ LIBS = {
 DEPS = {
 	"lualib"
 }
+
+--分组定义
+GROUP = "luaext"
+
