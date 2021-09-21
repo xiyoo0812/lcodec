@@ -7,7 +7,6 @@
   |--proj <br>
   &emsp;|--lua <br>
   &emsp;|--lbuffer
-- [luaext](https://github.com/xiyoo0812/luaext.git) 集成了所有lua扩展库，建议使用或者参考。
 
 # 编译
 - msvc: 准备好lua依赖库并放到指定位置，将proj文件加到sln后编译。
