@@ -427,6 +427,7 @@ void serialize(lua_State* L, var_buffer* buf, int index, int depth, int line) {
         SERIALIZE_UDATA(buf, lua_tostring(L, index));
         break;
     default:
-        luaL_error(L, "unsupport type %s to serialize", lua_typename(L, type));
+        SERIALIZE_QUOTE(buf, lua_typename(L, type), "'unsupport(", ")'");
+        break;
     }
 }
