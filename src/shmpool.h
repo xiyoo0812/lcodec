@@ -24,7 +24,7 @@ LBUFF_API void detach_shm(uint8_t* shm_buff, size_t shm_handle);
 LBUFF_API void delete_shm(size_t shm_handle);
 
 //shmpool
-//固定大小的共享内存池
+//鍥哄畾澶у皬鐨勫叡浜唴瀛樻睜
 LBUFF_API shm_pool* shmpool_alloc(uint32_t fixsize, uint16_t block_num, size_t shm_id);
 
 LBUFF_API void shmpool_close(shm_pool* pool);
