@@ -11,9 +11,6 @@
 #define LBUFF_API extern
 #endif
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -26,6 +23,3 @@ extern "C" {
 #include "serialize.h"
 #endif
 
-#ifdef __cplusplus
-}
-#endif

@@ -4,8 +4,8 @@
 
 namespace lbuffer {
     class buf_pool {
-        uint8_t* malloc() = 0;
-        void free(uint8_t* data) = 0;
+        virtual uint8_t* malloc() = 0;
+        virtual void free(uint8_t* data) = 0;
     };
 
     template<int BLOCK_SIZE = 512, int GROW_STEP = 16>
@@ -13,7 +13,7 @@ namespace lbuffer {
     public:
         ~mem_pool() { clear(); }
 
-        static mem_pool* instance() { 
+        static mem_pool* instance() {
             static mem_pool<BLOCK_SIZE, GROW_STEP> pool;
             return &pool;
         }
@@ -29,40 +29,37 @@ namespace lbuffer {
         uint8_t* malloc() {
             std::unique_lock<std::mutex> lock(m_mutex);
             if (!m_first_free) {
-                auto phead = new fixblock[GROW_STEP];
-                if(!phead) {
+                auto phead = new fix_block[GROW_STEP];
+                if (!phead) {
                     return nullptr;
                 }
-                for(size_t i = 0; i < GROW_STEP; ++i) {
-                    phead[i].nextFree = (i < (GROW_STEP - 1)) ? &(phead[i + 1]) : nullptr;
+                for (size_t i = 0; i < GROW_STEP; ++i) {
+                    phead[i].next_free = (i < (GROW_STEP - 1)) ? &(phead[i + 1]) : nullptr;
                     m_blocks.push_front(&phead[i]);
                 }
-			    m_firstFree = phead;
+                m_first_free = phead;
             }
-            m_used++;
             fix_block* block = m_first_free;
             m_first_free = block->next_free;
             return block->data;
         }
 
-        void free(uint8_t* data){
+        void free(uint8_t* data) {
             std::unique_lock<std::mutex> lock(m_mutex);
             fix_block* block = (fix_block*)(data);
             block->next_free = m_first_free;
             m_first_free = block;
-            m_used--;
         }
-        
+
     protected:
-        struct fixblock {
+        struct fix_block {
             uint8_t data[BLOCK_SIZE];
-            struct fixblock* next_free;
+            struct fix_block* next_free;
         };
         mem_pool() {}
 
-        uint32_t m_used = 0;
         fix_block* m_first_free = nullptr;
         std::mutex m_mutex;
         std::list<fix_block*> m_blocks;
-    }
+    };
 }

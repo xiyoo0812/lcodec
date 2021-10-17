@@ -3,12 +3,12 @@
 
 namespace lbuffer {
 
-    const size_t BUFFER_MAX 65535 * 65535    //1GB
+    const size_t BUFFER_MAX = 65535 * 65535;    //1GB
 
-    class var_buffer {   
+    class var_buffer {
     public:
-        io_buffer(size_t size) { _alloc(size); }
-        ~io_buffer() { free(m_data); }
+        var_buffer(size_t size) { _alloc(size); }
+        ~var_buffer() { free(m_data); }
 
         void reset() {
             m_data = (uint8_t*)realloc(m_data, m_ori_size);
@@ -31,7 +31,7 @@ namespace lbuffer {
         }
 
         size_t apend(const uint8_t* src, size_t src_len) {
-            uint8_t* target = attach(buf, src_len);
+            uint8_t* target = attach(src_len);
             if (target) {
                 memcpy(target, src, src_len);
                 m_tail += src_len;
@@ -45,8 +45,8 @@ namespace lbuffer {
                 m_head += erase_len;
                 size_t data_len = (size_t)(m_tail - m_head);
                 if (m_size > m_ori_size && data_len < m_size / 4) {
-                    _regularize(buf);
-                    _resize(buf, m_size / 2);
+                    _regularize();
+                    _resize(m_size / 2);
                 }
                 return erase_len;
             }
@@ -81,7 +81,7 @@ namespace lbuffer {
             if (space_len >= len) {
                 return m_tail;
             }
-            space_len = _regularize(buf);
+            space_len = _regularize();
             if (space_len >= len) {
                 return m_tail;
             }
@@ -93,7 +93,7 @@ namespace lbuffer {
             while (nsize - data_len < len) {
                 nsize *= 2;
             }
-            _resize(buf, nsize);
+            _resize(nsize);
             return m_tail;
         }
 
@@ -110,7 +110,7 @@ namespace lbuffer {
         size_t _regularize() {
             size_t data_len = (size_t)(m_tail - m_head);
             if (m_head > m_data) {
-                if (data_len > 0){
+                if (data_len > 0) {
                     memmove(m_data, m_head, data_len);
                 }
                 m_tail = m_data + data_len;
@@ -133,7 +133,7 @@ namespace lbuffer {
             return size - data_len;
         }
 
-       void _alloc(size_t size) {
+        void _alloc(size_t size) {
             m_data = (uint8_t*)malloc(size);
             m_end = m_data + size;
             m_head = m_data;
@@ -141,7 +141,7 @@ namespace lbuffer {
             m_ori_size = size;
             m_size = size;
         }
-        
+
     private:
         uint8_t* m_head;
         uint8_t* m_tail;
