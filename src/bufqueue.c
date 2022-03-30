@@ -1,11 +1,12 @@
 #include "bufqueue.h"
+#include "shmpool.h"
 #include <memory.h>
 
-fix_buffer* fixbuf_alloc(bufder_queue* queue) {
+fix_buffer* fixbuf_alloc(buffer_queue* queue) {
     uint8_t* data = NULL;
     if (queue->buf_pool) {
         data = bufpool_malloc(queue->buf_pool);
-    } 
+    }
     else if (queue->sh_pool){
         data = shmpool_malloc(queue->sh_pool);
     }
@@ -23,7 +24,7 @@ fix_buffer* fixbuf_alloc(bufder_queue* queue) {
     return fb;
 }
 
-void fixbuf_close(bufder_queue* queue, fix_buffer* head) {
+void fixbuf_close(buffer_queue* queue, fix_buffer* head) {
     while (head) {
         fix_buffer* next = head->next;
         if (head->data) {
@@ -43,41 +44,43 @@ void fixbuf_close(bufder_queue* queue, fix_buffer* head) {
     }
 }
 
-bufder_queue* bufqueue_alloc(uint32_t fix_size) {
-    bufder_queue* queue = (bufder_queue*)malloc(sizeof(bufder_queue));
+buffer_queue* bufqueue_alloc(uint32_t fix_size, uint16_t graw_size) {
+    buffer_queue* queue = (buffer_queue*)malloc(sizeof(buffer_queue));
+    queue->buf_pool = bufpool_alloc(fix_size, graw_size);
     queue->head = queue->tail = NULL;
     queue->fix_size = fix_size;
     queue->size = 0;
     return queue;
 }
 
-void bufqueue_pool(bufder_queue* queue, uint16_t graw_size) {
-    queue->buf_pool = bufpool_alloc(queue->fix_size, graw_size);
+buffer_queue* shmqueue_alloc(uint32_t fix_size, uint16_t block_num, size_t shm_id) {
+    buffer_queue* queue = (buffer_queue*)malloc(sizeof(buffer_queue));
+    queue->sh_pool = shmpool_alloc(fix_size, block_num, shm_id);
+    queue->head = queue->tail = NULL;
+    queue->fix_size = fix_size;
+    queue->size = 0;
+    return queue;
 }
 
-void bufqueue_shm(bufder_queue* queue, uint16_t block_num, size_t shm_id) {
-    queue->sh_pool = shmpool_alloc(queue->fix_size, block_num, shm_id);
-}
-
-uint32_t bufqueue_size(bufder_queue* queue) {
+uint32_t bufqueue_size(buffer_queue* queue) {
     return queue->size;
 }
 
-uint32_t bufqueue_empty(bufder_queue* queue) {
+uint32_t bufqueue_empty(buffer_queue* queue) {
     return queue->size == 0;
 }
 
-uint32_t queue_full(bufder_queue* queue) {
+uint32_t queue_full(buffer_queue* queue) {
     return queue->tail->end == queue->tail->len;
 }
 
-void bufqueue_clear(bufder_queue* queue) {
+void bufqueue_clear(buffer_queue* queue) {
     fixbuf_close(queue, queue->head);
     queue->head = queue->tail = NULL;
     queue->size = 0;
 }
 
-void bufqueue_close(bufder_queue* queue) {
+void bufqueue_close(buffer_queue* queue) {
     bufqueue_clear(queue);
     if (queue->buf_pool) {
         bufpool_close(queue->buf_pool);
@@ -88,7 +91,7 @@ void bufqueue_close(bufder_queue* queue) {
     free(queue);
 }
 
-uint32_t bufqueue_push(bufder_queue* queue, const uint8_t* data, uint32_t sz) {
+uint32_t bufqueue_push(buffer_queue* queue, const uint8_t* data, uint32_t sz) {
     uint32_t push_len = 0;
     while (push_len < sz) {
         if (bufqueue_empty(queue) || queue_full(queue)) {
@@ -114,7 +117,7 @@ uint32_t bufqueue_push(bufder_queue* queue, const uint8_t* data, uint32_t sz) {
     return sz;
 }
 
-uint32_t bufqueue_pop(bufder_queue* queue, uint8_t* data, uint32_t sz) {
+uint32_t bufqueue_pop(buffer_queue* queue, uint8_t* data, uint32_t sz) {
     if (sz > 0 && sz <= queue->size) {
         uint32_t pop_len = 0;
         while (pop_len < sz) {
@@ -137,7 +140,7 @@ uint32_t bufqueue_pop(bufder_queue* queue, uint8_t* data, uint32_t sz) {
     return 0;
 }
 
-const uint8_t* bufqueue_front(bufder_queue* queue, uint32_t* len) {
+const uint8_t* bufqueue_front(buffer_queue* queue, uint32_t* len) {
     if (!queue->head) {
         return NULL;
     }
