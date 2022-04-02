@@ -3,6 +3,7 @@
 
 #include "lbuffer.h"
 #include "bufpool.h"
+#include "shmpool.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,5 +1,4 @@
 #include "bufqueue.h"
-#include "shmpool.h"
 #include <memory.h>
 
 fix_buffer* fixbuf_alloc(buffer_queue* queue) {
