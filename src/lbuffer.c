@@ -7,7 +7,7 @@
 #include "buffer.h"
 #include "serialize.h"
 
-#define LUA_ENCODE_SIZE     64
+#define LUA_ENCODE_SIZE     256
 #define LUA_SERIALIZE_SIZE  256
 
 #define  LUA_BUFFER_META    "_LUA_BUFFER_META"
@@ -25,8 +25,9 @@ int lencode(lua_State* L) {
     size_t len;
     uint8_t* byte = buffer_data(binary, &len);
     lua_pushlstring(L, byte, len);
+    lua_pushinteger(L, len);
     buffer_close(binary);
-    return 1;
+    return 2;
 }
 
 int ldecode(lua_State* L) {
