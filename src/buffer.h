@@ -11,7 +11,9 @@ namespace lbuffer {
         ~var_buffer() { free(m_data); }
 
         void reset() {
-            m_data = (uint8_t*)realloc(m_data, m_ori_size);
+            if (m_size != m_ori_size) {
+                m_data = (uint8_t*)realloc(m_data, m_ori_size);
+            }
             memset(m_data, 0, m_ori_size);
             m_head = m_tail = m_data;
             m_size = m_ori_size;
