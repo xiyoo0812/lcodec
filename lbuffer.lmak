@@ -15,11 +15,7 @@ FLAGS = {
 --需要的include目录
 INCLUDES = {
 	"../lua/lua"
-}
-
---需要定义的选项
-DEFINES = {
-	"LBUFF_EXPORT"
+	"../luakit/include"
 }
 
 --需要连接的库文件
