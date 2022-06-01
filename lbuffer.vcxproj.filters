@@ -13,7 +13,7 @@
     <ClInclude Include="src\lbuffer.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\serialize.h">
+    <ClInclude Include="src\serializer.h">
       <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="src\shm.h">
@@ -22,21 +22,21 @@
     <ClInclude Include="src\shmpool.h">
       <Filter>inc</Filter>
     </ClInclude>
+    <ClInclude Include="src\slice.h">
+      <Filter>inc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lbuffer.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="src\serialize.c">
+    <ClCompile Include="src\lbuffer.cpp">
       <Filter>src</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="inc">
-      <UniqueIdentifier >{CF9F3FDE-7326-F1D8-E642-05F0E07A3695}</UniqueIdentifier>
+      <UniqueIdentifier>{CF9F3FDE-7326-F1D8-E642-05F0E07A3695}</UniqueIdentifier>
     </Filter>
     <Filter Include="src">
-      <UniqueIdentifier >{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
+      <UniqueIdentifier>{25D902C2-4283-AB8C-FBAC-54DFA101AD31}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

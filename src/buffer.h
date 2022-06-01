@@ -1,9 +1,9 @@
 #pragma once
-#include <memory.h>
+#include "slice.h"
 
 namespace lbuffer {
 
-    const size_t BUFFER_MAX = 65535 * 65535;    //1GB
+    const size_t BUFFER_MAX = 256 * 1024 * 1024;    //256mb
 
     class var_buffer {
     public:
@@ -15,8 +15,8 @@ namespace lbuffer {
                 m_data = (uint8_t*)realloc(m_data, m_ori_size);
             }
             memset(m_data, 0, m_ori_size);
-            m_head = m_tail = m_read = m_data;
-            m_end = m_data + size;
+            m_end = m_data + m_ori_size;
+            m_head = m_tail = m_data;
             m_size = m_ori_size;
         }
 
@@ -48,7 +48,6 @@ namespace lbuffer {
             if (pop_len > 0 && data_len >= pop_len) {
                 memcpy(dest, m_head, pop_len);
                 m_head += pop_len;
-                m_read = m_head;
                 return pop_len;
             }
             return 0;
@@ -57,7 +56,6 @@ namespace lbuffer {
         size_t pop_space(size_t erase_len) {
             if (m_head + erase_len <= m_tail) {
                 m_head += erase_len;
-                m_read = m_head;
                 size_t data_len = (size_t)(m_tail - m_head);
                 if (m_size > m_ori_size && data_len < m_size / 4) {
                     _regularize();
@@ -68,6 +66,15 @@ namespace lbuffer {
             return 0;
         }
 
+        slice* slice(size_t len) {
+            size_t data_len = m_tail - m_head;
+            if (data_len > len) {
+                m_slice.attach(m_head, len);
+                return &m_slice;
+            }
+            return nullptr;
+        }
+
         uint8_t* peek(size_t peek_len) {
             size_t data_len = m_tail - m_head;
             if (peek_len > 0 && data_len >= peek_len) {
@@ -76,47 +83,35 @@ namespace lbuffer {
             return nullptr;
         }
 
+        uint8_t* attach(size_t len) {
+            size_t space_len = m_end - m_tail;
+            if (space_len >= len) {
+                return m_tail;
+            }
+            space_len = _regularize();
+            if (space_len >= len) {
+                return m_tail;
+            }
+            size_t data_len = m_tail - m_head;
+            if ((data_len + len) > BUFFER_MAX) {
+                return nullptr;
+            }
+            size_t nsize = m_size * 2;
+            while (nsize - data_len < len) {
+                nsize *= 2;
+            }
+            _resize(nsize);
+            return m_tail;
+        }
+
         uint8_t* data(size_t* len) {
             *len = (size_t)(m_tail - m_head);
             return m_head;
         }
 
-        int check(lua_State* L) {
-            size_t len = lua_tointeger(L, 1);
-            size_t data_len = m_tail - m_read;
-            if (peek_len > 0 && data_len >= peek_len) {
-                lua_pushlstring(L, m_read, len);
-                return 1;
-            }
-            return 0;
-        }
-
-        size_t read(uint8_t* dest, size_t read_len) {
-            size_t data_len = m_tail - m_read;
-            if (read_len > 0 && data_len >= read_len) {
-                memcpy(dest, m_read, read_len);
-                m_read += read_len;
-                return read_len;
-            }
-            return 0;
-        }
-
-        int slice(lua_tSate* L) {
-            size_t data_len = m_tail - m_read;
-            size_t read_len = lua_tointeger(L, 1);
-            if (read_len > 0 && data_len >= read_len) {
-                lua_pushlstring(L, m_read, read_len);
-                m_read += read_len;
-                return 1;
-            }
-            return 0
-        }
-
-        int contents(lua_State* L) {
+        std::string string() {
             size_t len = (size_t)(m_tail - m_head);
-            lua_pushlstring(L, m_head, len);
-            lua_pushinteger(L, len);
-            return 2;
+            return std::string((const char*)m_head, len);
         }
 
     protected:
@@ -128,7 +123,7 @@ namespace lbuffer {
                     memmove(m_data, m_head, data_len);
                 }
                 m_tail = m_data + data_len;
-                m_head = m_read = m_data;
+                m_head = m_data;
             }
             return m_size - data_len;
         }
@@ -141,27 +136,27 @@ namespace lbuffer {
             }
             m_data = (uint8_t*)realloc(m_data, size);
             m_tail = m_data + data_len;
-            m_head = m_read = m_data;
             m_end = m_data + size;
+            m_head = m_data;
             m_size = size;
             return size - data_len;
         }
 
         void _alloc(size_t size) {
             m_data = (uint8_t*)malloc(size);
-            m_head = m_tail = m_read = m_data;
+            m_head = m_tail = m_data;
             m_end = m_data + size;
             m_ori_size = size;
             m_size = size;
         }
 
     private:
+        size_t m_size;
         uint8_t* m_head;
         uint8_t* m_tail;
         uint8_t* m_end;
         uint8_t* m_data;
-        uint8_t* m_read;
         size_t m_ori_size;
-        size_t m_size;
+        lbuffer::slice m_slice;
     };
 }

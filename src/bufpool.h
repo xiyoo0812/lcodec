@@ -4,8 +4,8 @@
 
 namespace lbuffer {
     class buf_pool {
-        virtual uint8_t* malloc() = 0;
-        virtual void free(uint8_t* data) = 0;
+        virtual uint8_t* alloc() = 0;
+        virtual void erase(uint8_t* data) = 0;
     };
 
     template<int BLOCK_SIZE = 512, int GROW_STEP = 16>
@@ -26,7 +26,7 @@ namespace lbuffer {
             m_used = 0;
         }
 
-        uint8_t* malloc() {
+        uint8_t* alloc() {
             std::unique_lock<std::mutex> lock(m_mutex);
             if (!m_first_free) {
                 auto phead = new fix_block[GROW_STEP];
@@ -44,7 +44,7 @@ namespace lbuffer {
             return block->data;
         }
 
-        void free(uint8_t* data) {
+        void erase(uint8_t* data) {
             std::unique_lock<std::mutex> lock(m_mutex);
             fix_block* block = (fix_block*)(data);
             block->next_free = m_first_free;

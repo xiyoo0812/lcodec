@@ -3,6 +3,13 @@
 #include "shmpool.h"
 
 namespace lbuffer {
+    struct fixbuffer {
+        uint32_t len = 0;
+        uint32_t end = 0;
+        uint32_t begin = 0;
+        uint8_t* data = nullptr;
+    };
+
     template<int BLOCK_SIZE = 512>
     class bufqueue {
     public:
@@ -89,7 +96,7 @@ namespace lbuffer {
         bool alloc_buf() {
             uint8_t* data = nullptr;
             if (m_pool) {
-                data = m_pool->malloc();
+                data = m_pool->alloc();
             }
             else {
                 data = new uint8_t[BLOCK_SIZE]
@@ -105,7 +112,7 @@ namespace lbuffer {
 
         void free_buf(fixbuffer& buf) {
             if (m_pool) {
-                m_pool->free(buf.data);
+                m_pool->erase(buf.data);
             }
             else {
                 delete[] buf.data;
@@ -113,13 +120,6 @@ namespace lbuffer {
         }
 
     protected:
-        struct fixbuffer {
-            uint32_t len = 0;
-            uint32_t end = 0;
-            uint32_t begin = 0;
-            uint8_t* data = nullptr;
-        };
-
         uint32_t m_size;
         buf_pool* m_pool;
         std::list<fixbuffer> m_buffers;

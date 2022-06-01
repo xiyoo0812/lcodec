@@ -41,7 +41,7 @@ namespace lbuffer {
             return true;
         }
 
-        uint8_t* malloc() {
+        uint8_t* alloc() {
             std::unique_lock<std::mutex> lock(m_mutex);
             if (m_first_free == 0) {
                 return nullptr;
@@ -52,7 +52,7 @@ namespace lbuffer {
             return block.data;
         }
 
-        void free(uint8_t* data) {
+        void alloc(uint8_t* data) {
             std::unique_lock<std::mutex> lock(m_mutex);
             shm_block* block = (shm_block*)(data);
             block->next_free = m_shm_header->m_first_free;

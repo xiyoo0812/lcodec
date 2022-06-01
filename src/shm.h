@@ -2,7 +2,8 @@
 
 namespace lbuffer {
 #ifdef WIN32
-#include <windows.h>
+    #include <stdio.h>
+    #include <windows.h>
     uint8_t* attach_shm(size_t shm_id, size_t size, size_t* shm_handle) {
         char name_buff[128];
         snprintf(name_buff, sizeof(name_buff), "shm_%zu", shm_id);
@@ -30,8 +31,8 @@ namespace lbuffer {
     }
 
 #else
-#include <sys/ipc.h>
-#include <sys/shm.h>
+    #include <sys/ipc.h>
+    #include <sys/shm.h>
 
     uint8_t* attach_shm(size_t shm_id, size_t size, size_t* shm_handle) {
         int handle = shmget(shm_id, 0, 0);
