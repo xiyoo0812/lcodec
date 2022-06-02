@@ -66,13 +66,10 @@ namespace lbuffer {
             return 0;
         }
 
-        slice* slice(size_t len) {
+        slice* slice(size_t len = 0) {
             size_t data_len = m_tail - m_head;
-            if (data_len > len) {
-                m_slice.attach(m_head, len);
-                return &m_slice;
-            }
-            return nullptr;
+            m_slice.attach(m_head, len == 0 ? data_len : len);
+            return &m_slice;
         }
 
         uint8_t* peek(size_t peek_len) {

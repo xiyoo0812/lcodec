@@ -27,6 +27,14 @@ namespace lbuffer {
             return nullptr;
         }
 
+        size_t pop_space(size_t erase_len) {
+            if (m_head + erase_len <= m_tail) {
+                m_head += erase_len;
+                return erase_len;
+            }
+            return 0;
+        }
+
         int check(lua_State* L) {
             size_t peek_len = lua_tointeger(L, 1);
             size_t data_len = m_tail - m_head;
@@ -66,13 +74,6 @@ namespace lbuffer {
         std::string string() {
             size_t len = (size_t)(m_tail - m_head);
             return std::string((const char*)m_head, len);
-        }
-
-        int contents(lua_State* L) {
-            size_t len = (size_t)(m_tail - m_head);
-            lua_pushlstring(L, (const char*)m_head, len);
-            lua_pushinteger(L, len);
-            return 2;
         }
 
     protected:

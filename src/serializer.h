@@ -1,4 +1,9 @@
 #pragma once
+#ifdef WIN32
+#pragma warning(disable: 4244)
+#pragma warning(disable: 4267)
+#endif
+
 #include <vector>
 #include "buffer.h"
 
@@ -12,9 +17,10 @@ namespace lbuffer {
     const uint8_t type_int16        = 6;
     const uint8_t type_int32        = 7;
     const uint8_t type_int64        = 8;
-    const uint8_t type_string       = 9;
-    const uint8_t type_index        = 10;
-    const uint8_t type_max          = 11;
+    const uint8_t type_str_shrt     = 9;
+    const uint8_t type_str_long     = 10;
+    const uint8_t type_index        = 11;
+    const uint8_t type_max          = 12;
 
     const uint8_t max_encode_depth  = 16;
     const uint8_t max_share_string  = 255;
@@ -30,19 +36,19 @@ namespace lbuffer {
             delete m_buffer;
         }
 
-        var_buffer* encode(lua_State* L) {
+        slice* encode(lua_State* L) {
             m_buffer->reset();
             m_sshares.clear();
             int n = lua_gettop(L);
             for (int i = 1; i <= n; i++) {
                 encode_one(L, i, 0);
             }
-            return m_buffer;
+            return m_buffer->slice();
         }
 
         int encode_string(lua_State* L) {
             size_t data_len = 0;
-            var_buffer* buf = encode(L);
+            slice* buf = encode(L);
             const char* data = (const char*)buf->data(&data_len);
             lua_pushlstring(L, data, data_len);
             return 1;
@@ -61,8 +67,9 @@ namespace lbuffer {
         }
 
         int decode_string(lua_State* L, std::string buf) {
-            slice sli((uint8_t*)buf.c_str(), buf.size());
-            return decode(L, &sli);
+            m_buffer->reset();
+            m_buffer->push((uint8_t*)buf.c_str(), buf.size());
+            return decode(L, m_buffer->slice());
         }
 
         int serialize(lua_State* L) {
@@ -88,16 +95,11 @@ namespace lbuffer {
         }
 
     protected:
-        size_t find_index(std::string str) {
+        int16_t find_index(std::string str) {
             for (int i = 0; i < m_sshares.size(); ++i) {
                 if (m_sshares[i] == str) {
                     return i;
                 }
-            }
-            size_t sz = m_sshares.size();
-            if (sz <= max_share_string) {
-                m_sshares.push_back(str);
-                return sz;
             }
             return -1;
         }
@@ -116,41 +118,50 @@ namespace lbuffer {
                 luaL_error(L, "encode can't pack too long string");
                 return;
             }
-            size_t sindex = find_index(std::string(ptr, sz));
+            std::string value(ptr, sz);
+            int16_t sindex = find_index(value);
             if (sindex < 0){
-                value_encode(&type_string, 1);
-                value_encode((const uint8_t*)&sz, 2);
-                value_encode((const uint8_t*)ptr, sz);
+                if (sz > UCHAR_MAX) {
+                    value_encode(type_str_long);
+                    value_encode<uint16_t>(sz);
+                }
+                else {
+                    value_encode(type_str_shrt);
+                    value_encode<uint8_t>(sz);
+                }
+                value_encode(ptr, sz);
+                if (m_sshares.size() < max_share_string) {
+                    m_sshares.push_back(value);
+                }
                 return;
             }
-            uint8_t nindex = sindex;
-            value_encode(&type_index, 1);
-            value_encode(&nindex, 1);
+            value_encode(type_index);
+            value_encode<uint8_t>(sindex);
         }
 
         void integer_encode(int64_t integer) {
             if (integer >= 0 && integer <= max_uint8) {
                 integer += type_max;
-                value_encode((const uint8_t*)&integer, 1);
+                value_encode<uint8_t>(integer);
                 return;
             }
             if (integer <= SHRT_MAX && integer >= SHRT_MIN) {
-                value_encode(&type_int16, 1);
-                value_encode((const uint8_t*)&integer, sizeof(int16_t));
+                value_encode(type_int16);
+                value_encode<int16_t>(integer);
                 return;
             }
             if (integer <= INT_MAX && integer >= INT_MIN) {
-                value_encode(&type_int32, 1);
-                value_encode((const uint8_t*)&integer, sizeof(int32_t));
+                value_encode(type_int32);
+                value_encode<int32_t>(integer);
                 return;
             }
-            value_encode(&type_int64, 1);
-            value_encode((const uint8_t*)&integer, sizeof(int64_t));
+            value_encode(type_int64);
+            value_encode(integer);
         }
         
         void number_encode(double number) {
-            value_encode(&type_number, 1);
-            value_encode((const uint8_t*)&number, sizeof(double));
+            value_encode(type_number);
+            value_encode(number);
         }
 
         void encode_one(lua_State* L, int idx, int depth) {
@@ -160,7 +171,7 @@ namespace lbuffer {
             int type = lua_type(L, idx);
             switch (type) {
             case LUA_TNIL:
-                value_encode(&type_nil, 1);
+                value_encode(type_nil);
                 break;
             case LUA_TSTRING:
                 string_encode(L, idx);
@@ -169,7 +180,7 @@ namespace lbuffer {
                 table_encode(L, idx, depth + 1);
                 break;
             case LUA_TBOOLEAN:
-                lua_toboolean(L, idx) ? value_encode(&type_true, 1) : value_encode(&type_false, 1);
+                lua_toboolean(L, idx) ? value_encode(type_true) : value_encode(type_false);
                 break;
             case LUA_TNUMBER: 
                 lua_isinteger(L, idx) ? integer_encode(lua_tointeger(L, idx)) : number_encode(lua_tonumber(L, idx));
@@ -181,24 +192,23 @@ namespace lbuffer {
         
         void table_encode(lua_State* L, int index, int depth) {
             index = lua_absindex(L, index);
-            value_encode(&type_tab_head, 1);
+            value_encode(type_tab_head);
             lua_pushnil(L);
             while (lua_next(L, index) != 0) {
                 encode_one(L, -2, depth);
                 encode_one(L, -1, depth);
                 lua_pop(L, 1);
             }
-            value_encode(&type_tab_tail, 1);
+            value_encode(type_tab_tail);
         }
 
-        void string_decode(lua_State* L, slice* buf) {
-            uint8_t type = value_decode<uint8_t>(L, buf);
-            uint16_t sz = value_decode<uint16_t>(L, buf);
+        void string_decode(lua_State* L, slice* buf, uint16_t sz) {
             auto str = (const char*)buf->peek(sz);
             if (str == nullptr) {
                 luaL_error(L, "decode string is out of range");
                 return;
             }
+            buf->pop_space(sz);
             m_sshares.push_back(std::string(str, sz));
             lua_pushlstring(L, str, sz);
         }
@@ -234,8 +244,11 @@ namespace lbuffer {
             case type_number:
                 lua_pushnumber(L, value_decode<double>(L, buf));
                 break;
-            case type_string:
-                string_decode(L, buf);
+            case type_str_shrt:
+                string_decode(L, buf, value_decode<uint8_t>(L, buf));
+                break;
+            case type_str_long:
+                string_decode(L, buf, value_decode<uint16_t>(L, buf));
                 break;
             case type_index:
                 index_decode(L, buf);
@@ -255,7 +268,7 @@ namespace lbuffer {
                 lua_pushinteger(L, value_decode<int64_t>(L, buf));
                 break;
             default:
-                lua_pushinteger(L, type - max_uint8);
+                lua_pushinteger(L, type - type_max);
                 break;
             }
         }
@@ -265,9 +278,14 @@ namespace lbuffer {
             decode_value(L, buf, type);
             return type;
         }
-        
-        void value_encode(const uint8_t* data, size_t len) {
-            m_buffer->push(data, len);
+
+        template<typename T>
+        void value_encode(T data) {
+            m_buffer->push((const uint8_t*)&data, sizeof(T));
+        }
+
+        void value_encode(const char* data, size_t len) {
+            m_buffer->push((const uint8_t*)data, len);
         }
 
         template<typename T>
