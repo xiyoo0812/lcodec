@@ -3,25 +3,30 @@
 
 namespace lbuffer {
 
-    const size_t BUFFER_MAX = 256 * 1024 * 1024;    //256mb
+    const size_t BUFFER_DEF = 64 * 1024;        //64K
+    const size_t BUFFER_MAX = 64 * 1024 * 1024; //64M
 
     class var_buffer {
     public:
-        var_buffer(size_t size) { _alloc(size); }
+        var_buffer() { _alloc(); }
         ~var_buffer() { free(m_data); }
 
         void reset() {
-            if (m_size != m_ori_size) {
-                m_data = (uint8_t*)realloc(m_data, m_ori_size);
+            if (m_size != BUFFER_DEF) {
+                m_data = (uint8_t*)realloc(m_data, BUFFER_DEF);
             }
-            memset(m_data, 0, m_ori_size);
-            m_end = m_data + m_ori_size;
+            memset(m_data, 0, BUFFER_DEF);
+            m_end = m_data + BUFFER_DEF;
             m_head = m_tail = m_data;
-            m_size = m_ori_size;
+            m_size = BUFFER_DEF;
         }
 
         size_t size() {
             return m_tail - m_head;
+        }
+
+        size_t empty() {
+            return m_tail == m_head;
         }
 
         size_t copy(size_t offset, const uint8_t* src, size_t src_len) {
@@ -33,7 +38,7 @@ namespace lbuffer {
             return 0;
         }
 
-        size_t push(const uint8_t* src, size_t push_len) {
+        size_t push_data(const uint8_t* src, size_t push_len) {
             uint8_t* target = attach(push_len);
             if (target) {
                 memcpy(target, src, push_len);
@@ -43,7 +48,7 @@ namespace lbuffer {
             return 0;
         }
 
-        size_t pop(uint8_t* dest, size_t pop_len) {
+        size_t pop_data(uint8_t* dest, size_t pop_len) {
             size_t data_len = m_tail - m_head;
             if (pop_len > 0 && data_len >= pop_len) {
                 memcpy(dest, m_head, pop_len);
@@ -53,11 +58,11 @@ namespace lbuffer {
             return 0;
         }
 
-        size_t pop_space(size_t erase_len) {
+        size_t pop_size(size_t erase_len) {
             if (m_head + erase_len <= m_tail) {
                 m_head += erase_len;
                 size_t data_len = (size_t)(m_tail - m_head);
-                if (m_size > m_ori_size && data_len < m_size / 4) {
+                if (m_size > BUFFER_DEF && data_len < m_size / 4) {
                     _regularize();
                     _resize(m_size / 2);
                 }
@@ -66,18 +71,40 @@ namespace lbuffer {
             return 0;
         }
 
-        slice* slice(size_t len = 0) {
-            size_t data_len = m_tail - m_head;
-            m_slice.attach(m_head, len == 0 ? data_len : len);
-            return &m_slice;
-        }
-
-        uint8_t* peek(size_t peek_len) {
+        uint8_t* peek_data(size_t peek_len) {
             size_t data_len = m_tail - m_head;
             if (peek_len > 0 && data_len >= peek_len) {
                 return m_head;
             }
             return nullptr;
+        }
+
+        uint8_t* peek_space(size_t* peek_len) {
+            size_t space_len = m_end - m_tail;
+            if (space_len < m_size / 8) {
+                _regularize();
+                space_len = m_end - m_tail;
+                if (space_len < m_size / 4) {
+                    _resize(m_size * 2);
+                    space_len = m_end - m_tail;
+                }
+            }
+            *peek_len = space_len;
+            return m_tail;
+        }
+
+        size_t pop_space(size_t space_len) {
+            if (m_tail + space_len <= m_end) {
+                m_tail += space_len;
+                return space_len;
+            }
+            return 0;
+        }
+
+        slice* slice(size_t len = 0) {
+            size_t data_len = m_tail - m_head;
+            m_slice.attach(m_head, len == 0 ? data_len : len);
+            return &m_slice;
         }
 
         uint8_t* attach(size_t len) {
@@ -139,12 +166,11 @@ namespace lbuffer {
             return size - data_len;
         }
 
-        void _alloc(size_t size) {
-            m_data = (uint8_t*)malloc(size);
+        void _alloc() {
+            m_data = (uint8_t*)malloc(BUFFER_DEF);
             m_head = m_tail = m_data;
-            m_end = m_data + size;
-            m_ori_size = size;
-            m_size = size;
+            m_end = m_data + BUFFER_DEF;
+            m_size = BUFFER_DEF;
         }
 
     private:
@@ -153,7 +179,6 @@ namespace lbuffer {
         uint8_t* m_tail;
         uint8_t* m_end;
         uint8_t* m_data;
-        size_t m_ori_size;
         lbuffer::slice m_slice;
     };
 }

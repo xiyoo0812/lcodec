@@ -29,7 +29,7 @@ namespace lbuffer {
     class serializer {
     public:
         serializer() {
-            m_buffer = new var_buffer(UCHAR_MAX);
+            m_buffer = new var_buffer();
         }
 
         ~serializer() {
@@ -68,7 +68,7 @@ namespace lbuffer {
 
         int decode_string(lua_State* L, std::string buf) {
             m_buffer->reset();
-            m_buffer->push((uint8_t*)buf.c_str(), buf.size());
+            m_buffer->push_data((uint8_t*)buf.c_str(), buf.size());
             return decode(L, m_buffer->slice());
         }
 
@@ -208,7 +208,7 @@ namespace lbuffer {
                 luaL_error(L, "decode string is out of range");
                 return;
             }
-            buf->pop_space(sz);
+            buf->erase(sz);
             m_sshares.push_back(std::string(str, sz));
             lua_pushlstring(L, str, sz);
         }
@@ -281,11 +281,11 @@ namespace lbuffer {
 
         template<typename T>
         void value_encode(T data) {
-            m_buffer->push((const uint8_t*)&data, sizeof(T));
+            m_buffer->push_data((const uint8_t*)&data, sizeof(T));
         }
 
         void value_encode(const char* data, size_t len) {
-            m_buffer->push((const uint8_t*)data, len);
+            m_buffer->push_data((const uint8_t*)data, len);
         }
 
         template<typename T>
@@ -298,7 +298,7 @@ namespace lbuffer {
         }
 
         inline void serialize_value(const char* str) {
-            m_buffer->push((const uint8_t*)str, strlen(str));
+            m_buffer->push_data((const uint8_t*)str, strlen(str));
         }
 
         inline void serialize_udata(const char* data) {

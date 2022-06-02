@@ -20,7 +20,7 @@ namespace lbuffer {
         kit_state.new_class<slice>(
             "size", &slice::size,
             "read", &slice::read,
-            "check", &slice::check,
+            "peek", &slice::check,
             "string", &slice::string
             );
         kit_state.new_class<serializer>(

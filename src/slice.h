@@ -27,7 +27,7 @@ namespace lbuffer {
             return nullptr;
         }
 
-        size_t pop_space(size_t erase_len) {
+        size_t erase(size_t erase_len) {
             if (m_head + erase_len <= m_tail) {
                 m_head += erase_len;
                 return erase_len;
