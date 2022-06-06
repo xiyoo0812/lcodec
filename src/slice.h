@@ -10,6 +10,8 @@ namespace lbuffer {
             attach(data, size);
         }
 
+        void __gc() {}
+
         size_t size() {
             return m_tail - m_head;
         }
@@ -71,9 +73,17 @@ namespace lbuffer {
             return m_head;
         }
 
-        std::string string() {
+        int contents(lua_State* L) {
             size_t len = (size_t)(m_tail - m_head);
-            return std::string((const char*)m_head, len);
+            lua_pushlightuserdata(L, (void*)m_head);
+            lua_pushinteger(L, len);
+            return 2;
+        }
+
+        int string(lua_State* L) {
+            size_t len = (size_t)(m_tail - m_head);
+            lua_pushlstring(L, (const char*)m_head, len);
+            return 1;
         }
 
     protected:
