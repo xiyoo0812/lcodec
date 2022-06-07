@@ -4,7 +4,7 @@
 namespace lbuffer {
 
     const size_t BUFFER_DEF = 64 * 1024;        //64K
-    const size_t BUFFER_MAX = 64 * 1024 * 1024; //64M
+    const size_t BUFFER_MAX = 16 * 1024 * 1024; //16M
 
     class var_buffer {
     public:
@@ -25,6 +25,10 @@ namespace lbuffer {
             return m_tail - m_head;
         }
 
+        size_t capacity() {
+            return m_size;
+        }
+
         size_t empty() {
             return m_tail == m_head;
         }
@@ -39,7 +43,7 @@ namespace lbuffer {
         }
 
         size_t push_data(const uint8_t* src, size_t push_len) {
-            uint8_t* target = attach(push_len);
+            uint8_t* target = peek_space(push_len);
             if (target) {
                 memcpy(target, src, push_len);
                 m_tail += push_len;
@@ -79,20 +83,6 @@ namespace lbuffer {
             return nullptr;
         }
 
-        uint8_t* peek_space(size_t* peek_len) {
-            size_t space_len = m_end - m_tail;
-            if (space_len < m_size / 8) {
-                _regularize();
-                space_len = m_end - m_tail;
-                if (space_len < m_size / 4) {
-                    _resize(m_size * 2);
-                    space_len = m_end - m_tail;
-                }
-            }
-            *peek_len = space_len;
-            return m_tail;
-        }
-
         size_t pop_space(size_t space_len) {
             if (m_tail + space_len <= m_end) {
                 m_tail += space_len;
@@ -107,24 +97,22 @@ namespace lbuffer {
             return &m_slice;
         }
 
-        uint8_t* attach(size_t len) {
+        uint8_t* peek_space(size_t len) {
             size_t space_len = m_end - m_tail;
-            if (space_len >= len) {
-                return m_tail;
+            if (space_len < len) {
+                space_len = _regularize();
+                if (space_len < len) {
+                    size_t nsize = m_size * 2;
+                    size_t data_len = m_tail - m_head;
+                    while (nsize - data_len < len) {
+                        nsize *= 2;
+                    }
+                    space_len = _resize(nsize);
+                    if (space_len < len) {
+                        return nullptr;
+                    }
+                }
             }
-            space_len = _regularize();
-            if (space_len >= len) {
-                return m_tail;
-            }
-            size_t data_len = m_tail - m_head;
-            if ((data_len + len) > BUFFER_MAX) {
-                return nullptr;
-            }
-            size_t nsize = m_size * 2;
-            while (nsize - data_len < len) {
-                nsize *= 2;
-            }
-            _resize(nsize);
             return m_tail;
         }
 

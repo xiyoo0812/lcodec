@@ -35,7 +35,7 @@ namespace lbuffer {
         ~serializer() {
             delete m_buffer;
         }
-
+        
         slice* encode(lua_State* L) {
             m_buffer->reset();
             m_sshares.clear();
@@ -51,7 +51,8 @@ namespace lbuffer {
             slice* buf = encode(L);
             const char* data = (const char*)buf->data(&data_len);
             lua_pushlstring(L, data, data_len);
-            return 1;
+            lua_pushinteger(L, data_len);
+            return 2;
         }
 
         int decode(lua_State* L, slice* buf){
@@ -66,9 +67,9 @@ namespace lbuffer {
             return lua_gettop(L);
         }
 
-        int decode_string(lua_State* L, std::string buf) {
+        int decode_string(lua_State* L, const char* buf, size_t len) {
             m_buffer->reset();
-            m_buffer->push_data((uint8_t*)buf.c_str(), buf.size());
+            m_buffer->push_data((uint8_t*)buf, len);
             return decode(L, m_buffer->slice());
         }
 
@@ -188,7 +189,7 @@ namespace lbuffer {
             default:
                 break;
             }
-        } 
+        }
         
         void table_encode(lua_State* L, int index, int depth) {
             index = lua_absindex(L, index);

@@ -3,10 +3,6 @@
 #include "lbuffer.h"
 
 namespace lbuffer {
-
-    static slice* new_slice(lua_State* L, std::string data) {
-        return new slice((uint8_t*)data.c_str(), data.size());
-    }
     
     static serializer* new_serializer(lua_State* L) {
         return new serializer();
@@ -15,7 +11,6 @@ namespace lbuffer {
     luakit::lua_table open_lbuffer(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto llbuffer = kit_state.new_table();
-        llbuffer.set_function("new_slice", new_slice);
         llbuffer.set_function("new_serializer", new_serializer);
         kit_state.new_class<slice>(
             "size", &slice::size,
