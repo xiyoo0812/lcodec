@@ -10,21 +10,21 @@
     <ClInclude Include="src\buffer.h" />
     <ClInclude Include="src\bufpool.h" />
     <ClInclude Include="src\bufqueue.h" />
-    <ClInclude Include="src\lbuffer.h" />
+    <ClInclude Include="src\lcodec.h" />
     <ClInclude Include="src\serializer.h" />
     <ClInclude Include="src\shm.h" />
     <ClInclude Include="src\shmpool.h" />
     <ClInclude Include="src\slice.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\lbuffer.cpp" />
+    <ClCompile Include="src\lcodec.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{177A2178-1E93-A220-C618-9BAE709912F2}</ProjectGuid>
-    <RootNamespace>lbuffer</RootNamespace>
+    <ProjectGuid>{E24CB1AD-193A-E647-45BE-564E7264711B}</ProjectGuid>
+    <RootNamespace>lcodec</RootNamespace>
     <Keyword>Win32Proj</Keyword>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <ProjectName>lbuffer</ProjectName>
+    <ProjectName>lcodec</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'" Label="Configuration">
@@ -43,7 +43,7 @@
     <_ProjectFileVersion>11.0.50727.1</_ProjectFileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Develop|x64'">
-    <TargetName>lbuffer</TargetName>
+    <TargetName>lcodec</TargetName>
     <OutDir>$(SolutionDir)temp\bin\$(Platform)\</OutDir>
     <IntDir>$(SolutionDir)temp\$(ProjectName)\$(Platform)\</IntDir>
   </PropertyGroup>

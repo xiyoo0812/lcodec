@@ -7,7 +7,7 @@
 #include <vector>
 #include "buffer.h"
 
-namespace lbuffer {
+namespace lcodec {
     const uint8_t type_nil          = 0;
     const uint8_t type_true         = 1;
     const uint8_t type_false        = 2;
