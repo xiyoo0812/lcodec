@@ -36,7 +36,7 @@ namespace lcodec {
             delete m_buffer;
         }
 
-        slice* encode(lua_State* L) {
+        slice* encode_slice(lua_State* L) {
             m_buffer->reset();
             m_sshares.clear();
             int n = lua_gettop(L);
@@ -46,7 +46,7 @@ namespace lcodec {
             return m_buffer->get_slice();
         }
 
-        int encode_string(lua_State* L) {
+        int encode(lua_State* L) {
             size_t data_len = 0;
             slice* buf = encode(L);
             const char* data = (const char*)buf->data(&data_len);
@@ -55,7 +55,7 @@ namespace lcodec {
             return 2;
         }
 
-        int decode(lua_State* L, slice* buf){
+        int decode_slice(lua_State* L, slice* buf){
             m_sshares.clear();
             lua_settop(L, 0);
             while (1) {
@@ -67,7 +67,7 @@ namespace lcodec {
             return lua_gettop(L);
         }
 
-        int decode_string(lua_State* L, const char* buf, size_t len) {
+        int decode(lua_State* L, const char* buf, size_t len) {
             m_buffer->reset();
             m_buffer->push_data((uint8_t*)buf, len);
             return decode(L, m_buffer->get_slice());
