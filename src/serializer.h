@@ -48,7 +48,7 @@ namespace lcodec {
 
         int encode(lua_State* L) {
             size_t data_len = 0;
-            slice* buf = encode(L);
+            slice* buf = encode_slice(L);
             const char* data = (const char*)buf->data(&data_len);
             lua_pushlstring(L, data, data_len);
             lua_pushinteger(L, data_len);
@@ -70,7 +70,7 @@ namespace lcodec {
         int decode(lua_State* L, const char* buf, size_t len) {
             m_buffer->reset();
             m_buffer->push_data((uint8_t*)buf, len);
-            return decode(L, m_buffer->get_slice());
+            return decode_slice(L, m_buffer->get_slice());
         }
 
         int serialize(lua_State* L) {
