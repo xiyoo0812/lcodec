@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <time.h>
+#include <math.h>
 
 //i  - group，10位，(0~1023)
 //g  - index，10位(0~1023)
@@ -33,8 +34,8 @@ namespace lcodec {
 
     static std::string guid_encode(uint64_t val){
         char tmp[LETTER_LEN];
-        memset(tmp, '0', LETTER_LEN);
-        for (int i = LETTER_LEN - 1; i >= 0; i--) {
+        memset(tmp, 0, LETTER_LEN);
+        for (int i = 0; i < LETTER_SIZE; ++i) {
             tmp[i] = letter[val % LETTER_SIZE];
             val /= LETTER_SIZE;
             if (val == 0) break;
@@ -50,9 +51,9 @@ namespace lcodec {
     static uint64_t guid_decode(std::string sval){
         uint64_t val = 0;
         size_t len = sval.size();
-        for (int i = len - 1; i >= 0; i--) {
-            auto idx = find_index(sval.at(i));
-            val += uint64_t(idx * pow(LETTER_SIZE, len - 1 - i));
+        const char* cval = sval.c_str();
+        for (int i = 0; i < len; ++i) {
+            val += uint64_t(find_index(cval[i]) * pow(LETTER_SIZE, i));
         }
         return val;
     }
