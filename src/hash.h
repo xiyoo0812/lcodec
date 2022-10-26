@@ -104,7 +104,7 @@ namespace lcodec {
     }
 
     static int32_t jumphash(uint64_t key, int32_t num_buckets) {
-        int64_t b = -1, j = 0;
+        int32_t b = -1, j = 0;
         while (j < num_buckets) {
             b = j;
             key = key * 2862933555777941757ULL + 1;
@@ -114,9 +114,18 @@ namespace lcodec {
     }
 
     static int jumphash_l(lua_State* L) {
-        uint64_t key  = lua_tointeger(L, 1);
-        int32_t num_buckets = lua_tointeger(L, 1);
-        lua_pushinteger(L, jumphash(key, num_buckets));
+        uint64_t key = 0;
+        int type = lua_type(L, 1);
+        if (type == LUA_TNUMBER) {
+            key = lua_tointeger(L, 1);
+        } else if (type == LUA_TSTRING) {
+            key = fnv_1_32(lua_tostring(L, 1), 0);
+        } else {
+            luaL_error(L, "hashkey only support number or string!");
+        }
+        int32_t num_buckets = lua_tointeger(L, 2);
+        int32_t hval = jumphash(key, num_buckets);
+        lua_pushinteger(L, hval + 1);
         return 1;
     }
 }
