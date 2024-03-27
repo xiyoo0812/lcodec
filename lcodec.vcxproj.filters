@@ -1,13 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClInclude Include="src\buffer.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="src\bufpool.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="src\bufqueue.h">
+    <ClInclude Include="src\bitarray.h">
       <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="src\guid.h">
@@ -16,22 +10,19 @@
     <ClInclude Include="src\hash.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\ketama.h">
+    <ClInclude Include="src\http.h">
       <Filter>inc</Filter>
     </ClInclude>
     <ClInclude Include="src\lcodec.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\serializer.h">
+    <ClInclude Include="src\mysql.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\shm.h">
+    <ClInclude Include="src\redis.h">
       <Filter>inc</Filter>
     </ClInclude>
-    <ClInclude Include="src\shmpool.h">
-      <Filter>inc</Filter>
-    </ClInclude>
-    <ClInclude Include="src\slice.h">
+    <ClInclude Include="src\websocket.h">
       <Filter>inc</Filter>
     </ClInclude>
   </ItemGroup>

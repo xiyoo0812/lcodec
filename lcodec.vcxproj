@@ -7,17 +7,14 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\buffer.h" />
-    <ClInclude Include="src\bufpool.h" />
-    <ClInclude Include="src\bufqueue.h" />
+    <ClInclude Include="src\bitarray.h" />
     <ClInclude Include="src\guid.h" />
     <ClInclude Include="src\hash.h" />
-    <ClInclude Include="src\ketama.h" />
+    <ClInclude Include="src\http.h" />
     <ClInclude Include="src\lcodec.h" />
-    <ClInclude Include="src\serializer.h" />
-    <ClInclude Include="src\shm.h" />
-    <ClInclude Include="src\shmpool.h" />
-    <ClInclude Include="src\slice.h" />
+    <ClInclude Include="src\mysql.h" />
+    <ClInclude Include="src\redis.h" />
+    <ClInclude Include="src\websocket.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\lcodec.cpp" />
@@ -63,6 +60,7 @@
       <CompileAs>Default</CompileAs>
       <ForcedIncludeFiles>..\..\mimalloc-ex.h</ForcedIncludeFiles>
       <LanguageStandard>stdcpp17</LanguageStandard>
+      <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>

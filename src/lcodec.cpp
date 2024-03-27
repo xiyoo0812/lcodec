@@ -4,48 +4,49 @@
 
 namespace lcodec {
 
-    thread_local ketama thread_ketama;
-    thread_local serializer thread_seri;
-    static slice* encode_slice(lua_State* L) {
-        return thread_seri.encode_slice(L);
+    thread_local luakit::luabuf thread_buff;
+
+    static codec_base* rds_codec(codec_base* codec) {
+        rdscodec* rcodec = new rdscodec();
+        rcodec->set_codec(codec);
+        rcodec->set_buff(&thread_buff);
+        return rcodec;
     }
-    static int decode_slice(lua_State* L, slice* buf) {
-        return thread_seri.decode_slice(L, buf);
+
+    static codec_base* wss_codec(codec_base* codec) {
+        wsscodec* wcodec = new wsscodec();
+        wcodec->set_codec(codec);
+        wcodec->set_buff(&thread_buff);
+        return wcodec;
     }
-    static int serialize(lua_State* L) {
-        return thread_seri.serialize(L);
+
+    static codec_base* http_codec(codec_base* codec, bool jsondecode) {
+        httpcodec* hcodec = new httpcodec();
+        hcodec->set_codec(codec);
+        hcodec->set_buff(&thread_buff);
+        hcodec->set_jsondecode(jsondecode);
+        return hcodec;
     }
-    static int unserialize(lua_State* L) {
-        return thread_seri.unserialize(L);
+
+    static codec_base* mysql_codec(size_t session_id) {
+        mysqlscodec* codec = new mysqlscodec(session_id);
+        codec->set_buff(&thread_buff);
+        return codec;
     }
-    static int encode(lua_State* L) {
-        return thread_seri.encode(L);
-    }
-    static int decode(lua_State* L, const char* buf, size_t len) {
-        return thread_seri.decode(L, buf, len);
-    }
-    static bool ketama_insert(std::string name, uint32_t node_id) {
-        return thread_ketama.insert(name, node_id, 255);
-    }
-    static void ketama_remove(uint32_t node_id) {
-        thread_ketama.remove(node_id);
-    }
-    static uint32_t ketama_next(uint32_t node_id) {
-        return thread_ketama.next(node_id);
-    }
-    static std::map<uint32_t, uint32_t> ketama_map() {
-        return thread_ketama.virtual_map;
+    
+    static bitarray* lbarray(lua_State* L, size_t nbits) {
+        bitarray* barray = new bitarray();
+        if (!barray->general(nbits)) {
+            delete barray;
+            return nullptr;
+        }
+        return barray;
     }
 
     luakit::lua_table open_lcodec(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto llcodec = kit_state.new_table();
-        llcodec.set_function("encode", encode);
-        llcodec.set_function("decode", decode);
-        llcodec.set_function("serialize", serialize);
-        llcodec.set_function("unserialize", unserialize);
-        llcodec.set_function("encode_slice", encode_slice);
-        llcodec.set_function("decode_slice", decode_slice);
+        llcodec.set_function("bitarray", lbarray);
         llcodec.set_function("guid_new", guid_new);
         llcodec.set_function("guid_string", guid_string);
         llcodec.set_function("guid_tostring", guid_tostring);
@@ -61,24 +62,44 @@ namespace lcodec {
         llcodec.set_function("fnv_1_32", fnv_1_32_l);
         llcodec.set_function("fnv_1a_32", fnv_1a_32_l);
         llcodec.set_function("murmur3_32", murmur3_32_l);
-        llcodec.set_function("ketama_insert", ketama_insert);
-        llcodec.set_function("ketama_remove", ketama_remove);
-        llcodec.set_function("ketama_next", ketama_next);
-        llcodec.set_function("ketama_map", ketama_map);
-        kit_state.new_class<slice>(
-            "size", &slice::size,
-            "read", &slice::read,
-            "peek", &slice::check,
-            "string", &slice::string,
-            "contents", &slice::contents
-            );
+        llcodec.set_function("mysqlcodec", mysql_codec);
+        llcodec.set_function("rediscodec", rds_codec);
+        llcodec.set_function("httpcodec", http_codec);
+        llcodec.set_function("wsscodec", wss_codec);
+
+        kit_state.new_class<bitarray>(
+            "flip", &bitarray::flip,
+            "fill", &bitarray::fill,
+            "equal", &bitarray::equal,
+            "clone", &bitarray::clone,
+            "slice", &bitarray::slice,
+            "concat", &bitarray::concat,
+            "lshift", &bitarray::lshift,
+            "rshift", &bitarray::rshift,
+            "length", &bitarray::length,
+            "resize", &bitarray::resize,
+            "reverse", &bitarray::reverse,
+            "set_bit", &bitarray::set_bit,
+            "get_bit", &bitarray::get_bit,
+            "flip_bit", &bitarray::flip_bit,
+            "to_string", &bitarray::to_string,
+            "from_string", &bitarray::from_string,
+            "to_uint8", &bitarray::to_number<uint8_t>,
+            "to_uint16", &bitarray::to_number<uint16_t>,
+            "to_uint32", &bitarray::to_number<uint32_t>,
+            "to_uint64", &bitarray::to_number<uint64_t>,
+            "from_uint8", &bitarray::from_number<uint8_t>,
+            "from_uint16", &bitarray::from_number<uint16_t>,
+            "from_uint32", &bitarray::from_number<uint32_t>,
+            "from_uint64", &bitarray::from_number<uint64_t>
+        );
         return llcodec;
     }
 }
 
 extern "C" {
     LUALIB_API int luaopen_lcodec(lua_State* L) {
-        auto lluabus = lcodec::open_lcodec(L);
-        return lluabus.push_stack();
+        auto llcodec = lcodec::open_lcodec(L);
+        return llcodec.push_stack();
     }
 }
