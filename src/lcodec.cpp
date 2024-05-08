@@ -20,8 +20,16 @@ namespace lcodec {
         return wcodec;
     }
 
-    static codec_base* http_codec(codec_base* codec, bool jsondecode) {
-        httpcodec* hcodec = new httpcodec();
+    static codec_base* httpd_codec(codec_base* codec, bool jsondecode) {
+        httpcodec* hcodec = new httpdcodec();
+        hcodec->set_codec(codec);
+        hcodec->set_buff(&thread_buff);
+        hcodec->set_jsondecode(jsondecode);
+        return hcodec;
+    }
+
+    static codec_base* httpc_codec(codec_base* codec, bool jsondecode) {
+        httpcodec* hcodec = new httpccodec();
         hcodec->set_codec(codec);
         hcodec->set_buff(&thread_buff);
         hcodec->set_jsondecode(jsondecode);
@@ -45,7 +53,7 @@ namespace lcodec {
 
     luakit::lua_table open_lcodec(lua_State* L) {
         luakit::kit_state kit_state(L);
-        auto llcodec = kit_state.new_table();
+        auto llcodec = kit_state.new_table("codec");
         llcodec.set_function("bitarray", lbarray);
         llcodec.set_function("guid_new", guid_new);
         llcodec.set_function("guid_string", guid_string);
@@ -62,10 +70,13 @@ namespace lcodec {
         llcodec.set_function("fnv_1_32", fnv_1_32_l);
         llcodec.set_function("fnv_1a_32", fnv_1a_32_l);
         llcodec.set_function("murmur3_32", murmur3_32_l);
+        llcodec.set_function("httpccodec", httpc_codec);
+        llcodec.set_function("httpdcodec", httpd_codec);
         llcodec.set_function("mysqlcodec", mysql_codec);
         llcodec.set_function("rediscodec", rds_codec);
-        llcodec.set_function("httpcodec", http_codec);
         llcodec.set_function("wsscodec", wss_codec);
+        llcodec.set_function("url_encode", url_encode);
+        llcodec.set_function("url_decode", url_decode);        
 
         kit_state.new_class<bitarray>(
             "flip", &bitarray::flip,

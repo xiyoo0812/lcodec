@@ -71,7 +71,7 @@ namespace lcodec {
 
         virtual size_t decode(lua_State* L) {
             uint8_t head = *(uint8_t*)m_slice->read<uint8_t>();
-            if ((head & 0x80) != 0x80) throw invalid_argument("sharded packet not suppert!");
+            if ((head & 0x80) != 0x80) throw lua_exception("sharded packet not suppert!");
             uint8_t payload  = *(uint8_t*)m_slice->read<uint8_t>();
             uint8_t opcode = head & 0xf;
             bool mask = ((payload & 0x80) == 0x80);
@@ -105,7 +105,7 @@ namespace lcodec {
 
     protected:
         char* xor_byte(char* buffer, char* mask, size_t blen, size_t mlen) {
-            for (int i = 0; i < blen; i++) {
+            for (size_t i = 0; i < blen; i++) {
                 buffer[i] = buffer[i] ^ mask[i % mlen];
             }
             return buffer;
