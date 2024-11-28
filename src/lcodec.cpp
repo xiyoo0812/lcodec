@@ -4,57 +4,53 @@
 
 namespace lcodec {
 
-    thread_local luakit::luabuf thread_buff;
-
     static codec_base* rds_codec(codec_base* codec) {
         rdscodec* rcodec = new rdscodec();
         rcodec->set_codec(codec);
-        rcodec->set_buff(&thread_buff);
+        rcodec->set_buff(luakit::get_buff());
         return rcodec;
     }
 
     static codec_base* wss_codec(codec_base* codec) {
         wsscodec* wcodec = new wsscodec();
         wcodec->set_codec(codec);
-        wcodec->set_buff(&thread_buff);
+        wcodec->set_buff(luakit::get_buff());
         return wcodec;
     }
 
-    static codec_base* httpd_codec(codec_base* codec, bool jsondecode) {
+    static bitset* bitset_new() {
+        return new bitset();
+    }
+
+    static codec_base* httpd_codec(codec_base* codec) {
         httpcodec* hcodec = new httpdcodec();
         hcodec->set_codec(codec);
-        hcodec->set_buff(&thread_buff);
-        hcodec->set_jsondecode(jsondecode);
+        hcodec->set_buff(luakit::get_buff());
         return hcodec;
     }
 
-    static codec_base* httpc_codec(codec_base* codec, bool jsondecode) {
+    static codec_base* httpc_codec(codec_base* codec) {
         httpcodec* hcodec = new httpccodec();
         hcodec->set_codec(codec);
-        hcodec->set_buff(&thread_buff);
-        hcodec->set_jsondecode(jsondecode);
+        hcodec->set_buff(luakit::get_buff());
         return hcodec;
     }
 
     static codec_base* mysql_codec(size_t session_id) {
         mysqlscodec* codec = new mysqlscodec(session_id);
-        codec->set_buff(&thread_buff);
+        codec->set_buff(luakit::get_buff());
         return codec;
     }
-    
-    static bitarray* lbarray(lua_State* L, size_t nbits) {
-        bitarray* barray = new bitarray();
-        if (!barray->general(nbits)) {
-            delete barray;
-            return nullptr;
-        }
-        return barray;
+
+    static codec_base* pgsql_codec() {
+        pgsqlscodec* codec = new pgsqlscodec();
+        codec->set_buff(luakit::get_buff());
+        return codec;
     }
 
     luakit::lua_table open_lcodec(lua_State* L) {
         luakit::kit_state kit_state(L);
         auto llcodec = kit_state.new_table("codec");
-        llcodec.set_function("bitarray", lbarray);
         llcodec.set_function("guid_new", guid_new);
         llcodec.set_function("guid_string", guid_string);
         llcodec.set_function("guid_tostring", guid_tostring);
@@ -73,36 +69,50 @@ namespace lcodec {
         llcodec.set_function("httpccodec", httpc_codec);
         llcodec.set_function("httpdcodec", httpd_codec);
         llcodec.set_function("mysqlcodec", mysql_codec);
+        llcodec.set_function("pgsqlcodec", pgsql_codec);
         llcodec.set_function("rediscodec", rds_codec);
         llcodec.set_function("wsscodec", wss_codec);
         llcodec.set_function("url_encode", url_encode);
-        llcodec.set_function("url_decode", url_decode);        
-
-        kit_state.new_class<bitarray>(
-            "flip", &bitarray::flip,
-            "fill", &bitarray::fill,
-            "equal", &bitarray::equal,
-            "clone", &bitarray::clone,
-            "slice", &bitarray::slice,
-            "concat", &bitarray::concat,
-            "lshift", &bitarray::lshift,
-            "rshift", &bitarray::rshift,
-            "length", &bitarray::length,
-            "resize", &bitarray::resize,
-            "reverse", &bitarray::reverse,
-            "set_bit", &bitarray::set_bit,
-            "get_bit", &bitarray::get_bit,
-            "flip_bit", &bitarray::flip_bit,
-            "to_string", &bitarray::to_string,
-            "from_string", &bitarray::from_string,
-            "to_uint8", &bitarray::to_number<uint8_t>,
-            "to_uint16", &bitarray::to_number<uint16_t>,
-            "to_uint32", &bitarray::to_number<uint32_t>,
-            "to_uint64", &bitarray::to_number<uint64_t>,
-            "from_uint8", &bitarray::from_number<uint8_t>,
-            "from_uint16", &bitarray::from_number<uint16_t>,
-            "from_uint32", &bitarray::from_number<uint32_t>,
-            "from_uint64", &bitarray::from_number<uint64_t>
+        llcodec.set_function("url_decode", url_decode);
+        llcodec.set_function("bitset", bitset_new);
+        llcodec.new_enum("pgsql_type_f",
+            "bind", cmd_type_f::bind,
+            "sync", cmd_type_f::sync,
+            "close", cmd_type_f::close,
+            "query", cmd_type_f::query,
+            "parse", cmd_type_f::parse,
+            "flush", cmd_type_f::flush,
+            "execute", cmd_type_f::execute,
+            "discribe", cmd_type_f::discribe,
+            "password", cmd_type_f::password,
+            "function_call", cmd_type_f::function_call,
+            "startup", cmd_type_f::startup
+        );
+        llcodec.new_enum("auth_type_t",
+            "ok", auth_type_t::ok,
+            "v5", auth_type_t::v5,
+            "md5", auth_type_t::md5,
+            "scm", auth_type_t::scm,
+            "gss", auth_type_t::gss,
+            "sspi", auth_type_t::sspi,
+            "sasl", auth_type_t::sasl,
+            "cleartext", auth_type_t::cleartext,
+            "sasl_final", auth_type_t::sasl_final,
+            "gss_continue", auth_type_t::gss_continue,
+            "sasl_continue", auth_type_t::sasl_continue
+        );
+        kit_state.new_class<bitset>(
+            "get", &bitset::get,
+            "set", &bitset::set,
+            "hex", &bitset::hex,
+            "load", &bitset::load,
+            "flip", &bitset::flip,
+            "reset", &bitset::reset,
+            "check", &bitset::check,
+            "binary", &bitset::binary,
+            "loadhex", &bitset::loadhex,
+            "loadbin", &bitset::loadbin,
+            "tostring", &bitset::tostring
         );
         return llcodec;
     }

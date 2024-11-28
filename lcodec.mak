@@ -16,6 +16,7 @@ MYCFLAGS =
 
 #需要定义的FLAG
 MYCFLAGS += -Wno-sign-compare
+MYCFLAGS += -Wno-unused-function
 MYCFLAGS += -Wno-unused-variable
 MYCFLAGS += -Wno-unused-parameter
 MYCFLAGS += -Wno-unused-but-set-variable
@@ -32,9 +33,11 @@ STDCPP = -std=c++17
 
 #需要的include目录
 MYCFLAGS += -I../lua/lua
+MYCFLAGS += -I../fmt/include
 MYCFLAGS += -I../luakit/include
 
 #需要定义的选项
+MYCFLAGS += -DFMT_HEADER_ONLY
 
 #LDFLAGS
 LDFLAGS =

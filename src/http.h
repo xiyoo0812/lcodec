@@ -43,10 +43,6 @@ namespace lcodec {
             m_jcodec = codec;
         }
 
-        void set_jsondecode(bool jsondecode) {
-            m_jsondisable = jsondecode;
-        }
-
         virtual size_t decode(lua_State* L) {
             if (!m_slice) return 0;
             int top = lua_gettop(L);
@@ -114,18 +110,26 @@ namespace lcodec {
                     }
                     else if (!strncasecmp(key.data(), "Transfer-Encoding", key.size()) && !strncasecmp(header.data(), "chunked", header.size())) {
                         contentlenable = true;
-                        size_t pos = buf.find(CRLF2);
-                        if (pos == string_view::npos) {
-                            throw length_error("http text not full");
-                        }
-                        string_view chunk_data = buf.substr(0, pos);
-                        buf.remove_prefix(pos + LCRLF2);
-                        vector<string_view> chunks;
-                        split(chunk_data, CRLF, chunks);
-                        for (size_t i = 0; i < chunks.size(); i++) {
-                            if (i % 2 != 0) {
-                                m_buf->push_data((const uint8_t*)chunks[i].data(), chunks[i].size());
+                        bool complate = false;
+                        while (buf.size() > 0) {
+                            size_t pos = buf.find(CRLF);
+                            if (pos == string_view::npos) {
+                                throw length_error("http text not full");
                             }
+                            char* next;
+                            size_t chunk_size = strtol(buf.data(), &next, 16);
+                            if (chunk_size == 0) {
+                                complate = true;
+                                break;
+                            }
+                            if (buf.size() < chunk_size) {
+                                throw length_error("http text not full");
+                            }
+                            m_buf->push_data((const uint8_t*)next + LCRLF, chunk_size);
+                            buf.remove_prefix(pos + chunk_size + 2 * LCRLF);
+                        }
+                        if (!complate) {
+                            throw length_error("http text not full");
                         }
                         mslice = m_buf->get_slice();
                     }
@@ -149,7 +153,7 @@ namespace lcodec {
                 lua_pushnil(L);
                 return;
             }
-            if ((!m_jsondisable) && jsonable && m_jcodec) {
+            if (jsonable && m_jcodec) {
                 try {
                     m_jcodec->set_slice(mslice);
                     m_jcodec->decode(L);
@@ -190,7 +194,6 @@ namespace lcodec {
         }
 
     protected:
-        bool m_jsondisable = false;
         codec_base* m_jcodec = nullptr;
     };
 
