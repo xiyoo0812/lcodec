@@ -23,19 +23,20 @@ namespace lcodec {
             else return x;
         }
 
-        void load(std::string_view val) {
-            if (val.empty()) return;
+        bool load(std::string_view val) {
+            if (val.empty()) return false;
             size_t val_szie = val.size();
-            if (val_szie > MAX_BITSET_SIZE) return;
+            if (val_szie > MAX_BITSET_SIZE) return false;
             m_bits.resize((val_szie + 7) / 8 * 8);
             for (size_t i = 0; i < val_szie; ++i) {
                 m_bits[i] = (val[val_szie - i - 1] == '1');
             }
+            return true;
         }
 
-        void loadhex(std::string_view val) {
-            if (val.empty() || val.size() % 2 != 0) return;
-            if (val.size() * 4 > MAX_BITSET_SIZE) return;
+        bool loadhex(std::string_view val) {
+            if (val.empty() || val.size() % 2 != 0) return false;
+            if (val.size() * 4 > MAX_BITSET_SIZE) return false;
             m_bits.resize(val.size() * 4);
             for (size_t i = 0; i < val.size(); i += 2) {
                 uint8_t hi = fromhex(val[i]);
@@ -46,11 +47,12 @@ namespace lcodec {
                     m_bits[(i / 2) * 8 + j] = ((byte & flag) == flag);
                 }
             }
+            return true;
         }
 
-        void loadbin(std::string_view val) {
-            if (val.empty()) return;
-            if (val.size() * 8 > MAX_BITSET_SIZE) return;
+        bool loadbin(std::string_view val) {
+            if (val.empty()) return false;
+            if (val.size() * 8 > MAX_BITSET_SIZE) return false;
             m_bits.resize(val.size() * 8);
             for (size_t i = 0; i < val.size(); ++i) {
                 uint8_t byte = val[i];
@@ -59,6 +61,7 @@ namespace lcodec {
                     m_bits[i * 8 + j] = ((byte & flag) == flag);
                 }
             }
+            return true;
         }
 
         std::string_view binary() {
