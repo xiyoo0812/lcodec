@@ -103,12 +103,12 @@ namespace lcodec {
         }
 
         bool get(size_t pos) {
-            if (pos > m_bits.size()) return false;
+            if (pos > m_bits.size() || pos == 0) return false;
             return m_bits[pos - 1];
         }
 
         bool set(size_t pos, bool bval) {
-            if (pos > MAX_BITSET_SIZE) return false;
+            if (pos > MAX_BITSET_SIZE || pos == 0) return false;
             if (pos > m_bits.size()) {
                 size_t nsz = (m_bits.size() + 7) / 8 * 8;
                 m_bits.resize(nsz);
@@ -118,13 +118,13 @@ namespace lcodec {
         }
 
         bool flip(size_t pos) {
-            if (pos > m_bits.size()) return false;
+            if (pos > m_bits.size() || pos == 0) return false;
             m_bits[pos - 1] = !m_bits[pos - 1];
             return true;
         }
 
         bool check(size_t pos) {
-            if (pos > m_bits.size()) return false;
+            if (pos > m_bits.size() || pos == 0) return false;
             for (size_t i = 0; i < pos; ++i) {
                 if (!m_bits[i]) return false;
             }
