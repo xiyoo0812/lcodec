@@ -113,7 +113,7 @@ namespace lcodec {
         bool set(size_t pos, bool bval) {
             if (pos > MAX_BITSET_SIZE || pos == 0) return false;
             if (pos > m_bits.size()) {
-                size_t nsz = (m_bits.size() + 7) / 8 * 8;
+                size_t nsz = (pos + 7) / 8 * 8;
                 m_bits.resize(nsz);
             }
             m_bits[pos - 1] = bval;
