@@ -43,7 +43,6 @@ namespace lcodec {
             parse_redis_packet(L, buf);
             if (!sessions.empty()) sessions.pop_front();
             m_packet_len = osize - buf.size();
-            m_slice->erase(m_packet_len);
             return lua_gettop(L) - top;
         }
 
