@@ -122,7 +122,7 @@ namespace lcodec {
         virtual void parse_http_packet(lua_State* L, string_view& buf) = 0;
 
         void http_parse_body(lua_State* L, string_view header, string_view& buf) {
-            string body;
+            m_buffer.clear();
             bool jsonable = false;
             bool contentlenable = false;
             vector<string_view> headers;
@@ -141,7 +141,7 @@ namespace lcodec {
                         if (buf.size() < content_size) {
                             throw length_error("http text not full");
                         }
-                        body.append(buf.data(), content_size);
+                        m_buffer.append(buf.data(), content_size);
                         buf.remove_prefix(content_size);
                     }
                     else if (!strncasecmp(key.data(), "Transfer-Encoding", key.size()) && !strncasecmp(header.data(), "chunked", header.size())) {
@@ -161,7 +161,7 @@ namespace lcodec {
                             if (buf.size() < chunk_size) {
                                 throw length_error("http text not full");
                             }
-                            body.append((const char*)next + LCRLF, chunk_size);
+                            m_buffer.append((const char*)next + LCRLF, chunk_size);
                             buf.remove_prefix(pos + chunk_size + 2 * LCRLF);
                         }
                         if (!complate) {
@@ -179,25 +179,25 @@ namespace lcodec {
             }
             if (!contentlenable) {
                 if (!buf.empty()) {
-                    body.append((const char*)buf.data(), buf.size());
+                    m_buffer.append((const char*)buf.data(), buf.size());
                     buf.remove_prefix(buf.size());
                 }
             }
-            if (body.empty()) {
+            if (m_buffer.empty()) {
                 lua_pushnil(L);
                 return;
             }
             if (jsonable && m_jcodec) {
                 try {
-                    auto mslice = luakit::slice((uint8_t*)body.c_str(), body.size());
+                    auto mslice = luakit::slice((uint8_t*)m_buffer.c_str(), m_buffer.size());
                     m_jcodec->set_slice(&mslice);
                     m_jcodec->decode(L);
                 } catch (...) {
-                    lua_pushlstring(L, body.c_str(), body.size());
+                    lua_pushlstring(L, m_buffer.c_str(), m_buffer.size());
                 }
                 return;
             }
-            lua_pushlstring(L, body.c_str(), body.size());
+            lua_pushlstring(L, m_buffer.c_str(), m_buffer.size());
         }
 
         void format_http_header(string_view key, string_view val) {
@@ -229,6 +229,7 @@ namespace lcodec {
         }
 
     protected:
+        string m_buffer;
         codec_base* m_jcodec = nullptr;
     };
 
