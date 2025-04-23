@@ -158,12 +158,12 @@ namespace lcodec {
         }
 
         void number_encode(double value) {
-            auto res = std::to_chars(m_buffer, m_buffer + sizeof(m_buffer), value, std::chars_format::general, 15);
+            auto res = to_chars(m_buffer, m_buffer + sizeof(m_buffer), value, chars_format::general, 25);
             m_buf->write(fmt::format("${}\r\n{}\r\n", res.ptr - m_buffer, m_buffer));
         }
 
         void integer_encode(int64_t integer) {
-            auto res = std::to_chars(m_buffer, m_buffer + sizeof(m_buffer), integer);
+            auto res = to_chars(m_buffer, m_buffer + sizeof(m_buffer), integer);
             m_buf->write(fmt::format("${}\r\n{}\r\n", res.ptr - m_buffer, m_buffer));
         }
 
